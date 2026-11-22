@@ -24,7 +24,8 @@ src/
   components/  Componentes de UI reutilizables (layout/, icons/, …)
   pages/       Una página por tab/ruta: Inicio, Entrenar, Comida, Progreso, Perfil
   data/        Datos estáticos: músculos (muscles.ts), ejercicios con su mapeo a músculos (exercises.ts)…
-  lib/         Utilidades de navegador sin lógica de negocio (guardar archivos, share…)
+  lib/         Utilidades de navegador sin lógica de negocio (guardar archivos, sonido…)
+  store/       Stores Zustand de UI efímera (restTimer persistido en localStorage, trainUi)
   router.tsx   Rutas (/, /entrenar, /comida, /progreso, /perfil)
   main.tsx     Arranque: registro del SW, storage.persist(), render
   index.css    Tailwind + tema + utilidades safe-area (pt-safe, pb-safe, pl-safe, pr-safe)
@@ -58,6 +59,11 @@ public/        Iconos PWA/iOS (generados desde public/logo.svg)
   - Tiers con divisiones IV-I (3 puntos de score = 100 LP); Maestro y Leyenda sin divisiones.
   - Promos: `advancePromotion` por sesión que entrena el músculo; el estado se persiste fuera del dominio. Usar `displayedRank` para mostrar.
   - `computeRankings` es el punto de entrada; `rankSnapshot` + `diffRanks` para el resumen post-entreno.
+- **Entreno** (`src/db/workouts.ts`, `src/domain/workout.ts`, `src/domain/summary.ts`):
+  - Entreno en curso = `workout` sin `endedAt`; `exerciseIds` guarda el orden (también ejercicios sin series). Cada serie se escribe en Dexie al confirmarla.
+  - `finishWorkout` calcula el "Resumen de partida" con `buildWorkoutSummary` (puro), lo guarda en `workout.summary` y persiste las promos en `rankStates` (v3). El resumen no se recalcula al recargar.
+  - Temporizador de descanso: solo `endsAt` (timestamp) en Zustand persistido; el restante es `endsAt - ahora`. Sonido con Web Audio desbloqueado en el toque de "Guardar serie" (`unlockAudio`).
+  - Pesos de ejercicios `equipment: 'bodyweight'` = lastre (vacío = 0, negativo = asistencia).
 - Textos de la UI en español. Rutas en español.
 - Cámara (`getUserMedia`, p. ej. escáner de códigos de barras) **solo funciona en HTTPS** → probar en las previews de Vercel, no en `http://<ip-local>`.
 

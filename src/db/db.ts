@@ -7,6 +7,7 @@ import type {
   Meal,
   MealItem,
   Muscle,
+  RankStateRow,
   Routine,
   RoutineExercise,
   Setting,
@@ -31,6 +32,7 @@ export type GymDB = Dexie & {
   foods: EntityTable<Food, 'id'>
   meals: EntityTable<Meal, 'id'>
   mealItems: EntityTable<MealItem, 'id'>
+  rankStates: EntityTable<RankStateRow, 'id'>
 }
 
 export const DB_NAME = 'gymapp'
@@ -73,6 +75,11 @@ export function createDb(name = DB_NAME): GymDB {
     })
     // Instalaciones que ya tenían la v1: reciben el catálogo al actualizar
     .upgrade(seedCatalog)
+
+  // v3: estado de las series de promoción por músculo (y 'global')
+  db.version(3).stores({
+    rankStates: 'id',
+  })
 
   // BD nueva (primer arranque): Dexie dispara populate una única vez
   db.on('populate', seedCatalog)

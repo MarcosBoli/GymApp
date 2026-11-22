@@ -1,11 +1,10 @@
-import { PageHeader } from '../components/layout/PageHeader'
-import { EmptyState } from '../components/EmptyState'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { getActiveWorkout } from '../db/workouts'
+import { ActiveWorkout } from '../components/train/ActiveWorkout'
+import { StartWorkout } from '../components/train/StartWorkout'
 
 export default function TrainPage() {
-  return (
-    <>
-      <PageHeader title="Entrenar" />
-      <EmptyState />
-    </>
-  )
+  const active = useLiveQuery(async () => ({ workout: await getActiveWorkout() }))
+  if (!active) return null
+  return active.workout ? <ActiveWorkout workout={active.workout} /> : <StartWorkout />
 }

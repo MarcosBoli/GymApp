@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from 'react-router'
 import { motion } from 'framer-motion'
 import { BottomTabBar } from './BottomTabBar'
+import { RestTimerBar } from '../train/RestTimerBar'
 
 export function AppShell() {
   const { pathname } = useLocation()
@@ -18,6 +19,7 @@ export function AppShell() {
           <Outlet />
         </motion.div>
       </main>
+      <RestTimerBar />
       <BottomTabBar />
     </div>
   )

@@ -9,3 +9,15 @@ export function parseDecimal(input: string): number | null {
   const value = Number(normalized)
   return Number.isFinite(value) ? value : null
 }
+
+/** Formatea con coma decimal (es-ES), hasta 2 decimales y sin separador de miles. */
+export function formatDecimal(value: number, maxDecimals = 2): string {
+  return value.toLocaleString('es-ES', { maximumFractionDigits: maxDecimals, useGrouping: false })
+}
+
+/** Suma `delta` al número escrito (vacío o inválido = 0), sin bajar de `min`, y lo devuelve formateado. */
+export function stepDecimal(text: string, delta: number, min = 0): string {
+  const current = parseDecimal(text) ?? 0
+  const next = Math.max(min, Math.round((current + delta) * 100) / 100)
+  return formatDecimal(next)
+}

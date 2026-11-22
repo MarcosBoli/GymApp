@@ -58,7 +58,7 @@ describe('backup', () => {
     await src.userProfile.put({ id: 'me', sex: 'male', birthDate: '2000-01-01', heightCm: 180, activityLevel: 'moderate', goal: 'gain', updatedAt: 1 })
     await src.bodyweightLogs.put({ date: '2026-11-22', weightKg: 80.5 })
     const workoutId = newId()
-    await src.workouts.add({ id: workoutId, startedAt: 1 })
+    await src.workouts.add({ id: workoutId, startedAt: 1, exerciseIds: ['bench_press'] })
     await src.sets.add({ id: newId(), workoutId, exerciseId: 'bench_press', order: 0, performedAt: 2, reps: 5, weightKg: 100, rpe: 8, isWarmup: false })
     await src.foods.add({ id: 'f1', name: 'Arroz', barcode: '123', kcal: 360, proteinG: 7, carbsG: 79, fatG: 1 })
     await markBackupDone(new Date(1000), src)

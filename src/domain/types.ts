@@ -1,3 +1,6 @@
+import type { PromotionState } from './ranking'
+import type { WorkoutSummary } from './summary'
+
 /**
  * Tipos de las entidades persistidas. Puros (sin Dexie) para que domain/ no dependa de la BD.
  * Unidades siempre métricas: kg, cm, g.
@@ -80,6 +83,10 @@ export interface Workout {
   startedAt: Timestamp
   /** Vacío mientras el entreno está en curso. */
   endedAt?: Timestamp
+  /** Ejercicios del entreno en orden (incluye los que aún no tienen series). */
+  exerciseIds: string[]
+  /** Resumen de partida calculado al terminar (estable aunque se recargue). */
+  summary?: WorkoutSummary
   notes?: string
 }
 
@@ -131,6 +138,12 @@ export interface MealItem {
   proteinG: number
   carbsG: number
   fatG: number
+}
+
+/** Estado de la serie de promoción de un músculo (o 'global'). */
+export interface RankStateRow {
+  id: string
+  state: PromotionState
 }
 
 export interface Setting {
