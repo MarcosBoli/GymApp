@@ -1,0 +1,139 @@
+/**
+ * Tipos de las entidades persistidas. Puros (sin Dexie) para que domain/ no dependa de la BD.
+ * Unidades siempre métricas: kg, cm, g.
+ */
+
+/** Día local en formato 'YYYY-MM-DD' (no depende de la zona horaria al agrupar). */
+export type DateKey = string
+/** Instante en milisegundos desde epoch. */
+export type Timestamp = number
+
+export type Sex = 'male' | 'female'
+export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active'
+export type Goal = 'lose' | 'maintain' | 'gain'
+
+/** Perfil único (id fijo 'me'). El peso actual sale de bodyweightLogs; la edad de birthDate. */
+export interface UserProfile {
+  id: 'me'
+  sex: Sex
+  birthDate: DateKey
+  heightCm: number
+  activityLevel: ActivityLevel
+  goal: Goal
+  updatedAt: Timestamp
+}
+
+/** Un registro por día (la fecha es la clave primaria). */
+export interface BodyweightLog {
+  date: DateKey
+  weightKg: number
+}
+
+export type MuscleGroup = 'chest' | 'back' | 'shoulders' | 'arms' | 'core' | 'legs'
+
+export interface Muscle {
+  id: string
+  name: string
+  group: MuscleGroup
+  order: number
+}
+
+export type Equipment = 'barbell' | 'dumbbell' | 'machine' | 'cable' | 'bodyweight' | 'other'
+
+export interface Exercise {
+  id: string
+  name: string
+  equipment: Equipment
+  isCustom: boolean
+}
+
+/** 1 = músculo principal, 0.5 = secundario. */
+export type MuscleFactor = 1 | 0.5
+
+export interface ExerciseMuscle {
+  exerciseId: string
+  muscleId: string
+  factor: MuscleFactor
+}
+
+export interface Routine {
+  id: string
+  name: string
+  notes?: string
+  createdAt: Timestamp
+}
+
+export interface RoutineExercise {
+  id: string
+  routineId: string
+  exerciseId: string
+  order: number
+  targetSets?: number
+  targetRepsMin?: number
+  targetRepsMax?: number
+}
+
+export interface Workout {
+  id: string
+  /** Vacío en entrenos libres. */
+  routineId?: string
+  startedAt: Timestamp
+  /** Vacío mientras el entreno está en curso. */
+  endedAt?: Timestamp
+  notes?: string
+}
+
+export interface WorkoutSet {
+  id: string
+  workoutId: string
+  exerciseId: string
+  /** Posición dentro del entreno. */
+  order: number
+  performedAt: Timestamp
+  reps: number
+  /** En ejercicios de peso corporal es el lastre añadido (0 sin lastre). */
+  weightKg: number
+  rpe?: number
+  isWarmup: boolean
+}
+
+/** Valores nutricionales por 100 g. */
+export interface Food {
+  id: string
+  name: string
+  brand?: string
+  barcode?: string
+  kcal: number
+  proteinG: number
+  carbsG: number
+  fatG: number
+  /** Ración por defecto sugerida al añadirlo. */
+  servingG?: number
+}
+
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack'
+
+export interface Meal {
+  id: string
+  date: DateKey
+  type: MealType
+  createdAt: Timestamp
+}
+
+/** Guarda una copia de los valores por 100 g del alimento: editar/borrar el alimento no altera el histórico. */
+export interface MealItem {
+  id: string
+  mealId: string
+  foodId: string
+  grams: number
+  foodName: string
+  kcal: number
+  proteinG: number
+  carbsG: number
+  fatG: number
+}
+
+export interface Setting {
+  key: string
+  value: unknown
+}

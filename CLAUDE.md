@@ -19,11 +19,12 @@ PWA para iPhone (instalada desde Safari → "Añadir a pantalla de inicio") que 
 
 ```
 src/
-  db/          Dexie: esquema (db.ts), migraciones y acceso a datos; persist.ts (navigator.storage.persist)
-  domain/      Lógica de negocio PURA (cálculo de rangos, calorías, 1RM, volumen…) + tests *.test.ts
+  db/          Dexie: esquema versionado + seed (db.ts), backup.ts (export/import), ids.ts (newId), persist.ts
+  domain/      Lógica de negocio PURA (rangos, calorías, 1RM, backup…) + tests *.test.ts; types.ts = entidades
   components/  Componentes de UI reutilizables (layout/, icons/, …)
   pages/       Una página por tab/ruta: Inicio, Entrenar, Comida, Progreso, Perfil
-  data/        Datos estáticos (catálogo de ejercicios, músculos, umbrales de rango, alimentos base…)
+  data/        Datos estáticos: músculos (muscles.ts), ejercicios con su mapeo a músculos (exercises.ts)…
+  lib/         Utilidades de navegador sin lógica de negocio (guardar archivos, share…)
   router.tsx   Rutas (/, /entrenar, /comida, /progreso, /perfil)
   main.tsx     Arranque: registro del SW, storage.persist(), render
   index.css    Tailwind + tema + utilidades safe-area (pt-safe, pb-safe, pl-safe, pr-safe)
@@ -41,7 +42,15 @@ public/        Iconos PWA/iOS (generados desde public/logo.svg)
   - Inputs con `font-size ≥ 16px` (ya forzado en `index.css`) para que Safari no haga zoom.
   - Inputs numéricos: `type="text" inputMode="decimal"` y parsear con `parseDecimal` de `src/domain/number.ts` (acepta coma decimal del teclado español).
   - Usar `dvh` en lugar de `vh` para alturas de pantalla completa.
-- **Dexie**: para cambiar el esquema añade `db.version(n + 1)` con `.upgrade()`; nunca modifiques una versión ya publicada.
+- **Dexie** (`src/db/db.ts`):
+  - Para cambiar el esquema añade `db.version(n + 1)` con `.upgrade()`; nunca modifiques una versión ya publicada.
+  - Las entidades se tipan en `src/domain/types.ts` (sin Dexie). Unidades métricas (kg, cm, g).
+  - IDs de texto: slugs fijos en el catálogo semilla (`chest`, `bench_press`), `newId()` (UUID) en datos del usuario.
+  - Días como `DateKey` local `'YYYY-MM-DD'`; instantes como `Timestamp` (ms).
+  - El catálogo se siembra con `populate` (BD nueva) y en el `upgrade` de la v2 (instalaciones v1). Para añadir ejercicios en el futuro: nueva versión con `.upgrade()` que haga `bulkPut` de los nuevos.
+  - No duplicar datos derivables: peso actual = último `bodyweightLogs`; edad = `birthDate`. Excepción: `mealItems` guarda una copia de los valores del alimento para que el histórico no cambie.
+  - Tests de BD con `fake-indexeddb/auto` y `createDb(nombreUnico)`.
+- **Backup**: `exportAll`/`importAll` cubren automáticamente todas las tablas de `db.tables`; importar reemplaza todo en una transacción.
 - Textos de la UI en español. Rutas en español.
 - Cámara (`getUserMedia`, p. ej. escáner de códigos de barras) **solo funciona en HTTPS** → probar en las previews de Vercel, no en `http://<ip-local>`.
 
