@@ -1,0 +1,19 @@
+{
+  "_comment": "Configuración EDITABLE del sistema de rangos. Scores en escala 0-100.",
+  "e1rm": { "maxReps": 12 },
+  "windows": { "strengthDays": 42, "consistencyDays": 7, "inactivityDays": 14 },
+  "weights": { "strength": 0.8, "consistency": 0.2 },
+  "consistency": { "optimalMinSets": 10, "optimalMaxSets": 20, "overreachSets": 40, "overreachScore": 50 },
+  "promotion": { "sessions": 3, "winsNeeded": 2 },
+  "tiers": [
+    { "id": "iron", "name": "Hierro", "minScore": 0, "divisions": true, "color": "#7c7c85" },
+    { "id": "bronze", "name": "Bronce", "minScore": 12, "divisions": true, "color": "#b0714f" },
+    { "id": "silver", "name": "Plata", "minScore": 24, "divisions": true, "color": "#a7b1bc" },
+    { "id": "gold", "name": "Oro", "minScore": 36, "divisions": true, "color": "#e3b341" },
+    { "id": "platinum", "name": "Platino", "minScore": 48, "divisions": true, "color": "#4fb3a9" },
+    { "id": "emerald", "name": "Esmeralda", "minScore": 60, "divisions": true, "color": "#2ecc71" },
+    { "id": "diamond", "name": "Diamante", "minScore": 72, "divisions": true, "color": "#6c8cff" },
+    { "id": "master", "name": "Maestro", "minScore": 84, "divisions": false, "color": "#b36bff" },
+    { "id": "legend", "name": "Leyenda", "minScore": 94, "divisions": false, "color": "#ff5c7a" }
+  ]
+}

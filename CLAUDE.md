@@ -51,6 +51,13 @@ public/        Iconos PWA/iOS (generados desde public/logo.svg)
   - No duplicar datos derivables: peso actual = último `bodyweightLogs`; edad = `birthDate`. Excepción: `mealItems` guarda una copia de los valores del alimento para que el histórico no cambie.
   - Tests de BD con `fake-indexeddb/auto` y `createDb(nombreUnico)`.
 - **Backup**: `exportAll`/`importAll` cubren automáticamente todas las tablas de `db.tables`; importar reemplaza todo en una transacción.
+- **Ranking** (`src/domain/ranking.ts`, todo puro; parámetros en `src/data/rank-config.json` y estándares en `src/data/strength-standards.json`, ambos editables):
+  - e1RM de Epley (reps limitadas a `e1rm.maxReps`); calentamientos ignorados; `addBodyweight` → peso corporal + lastre (lastre negativo = asistencia).
+  - Score de ejercicio = ratio e1RM/peso corporal interpolado contra 5 niveles (`levelScores`). Mancuernas: peso de UNA mancuerna. Sin estándar → no puntúa fuerza, sí constancia.
+  - Score de músculo = 80 % fuerza (media ponderada por factor, ventana 42 d) + 20 % constancia (series efectivas 7 d, óptimo 10-20).
+  - Tiers con divisiones IV-I (3 puntos de score = 100 LP); Maestro y Leyenda sin divisiones.
+  - Promos: `advancePromotion` por sesión que entrena el músculo; el estado se persiste fuera del dominio. Usar `displayedRank` para mostrar.
+  - `computeRankings` es el punto de entrada; `rankSnapshot` + `diffRanks` para el resumen post-entreno.
 - Textos de la UI en español. Rutas en español.
 - Cámara (`getUserMedia`, p. ej. escáner de códigos de barras) **solo funciona en HTTPS** → probar en las previews de Vercel, no en `http://<ip-local>`.
 
