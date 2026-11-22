@@ -60,6 +60,10 @@ npm run generate-pwa-assets # regenerar iconos desde public/logo.svg
 
 Desarrollo en Windows: los scripts son multiplataforma y `.gitattributes` fuerza finales de línea LF.
 
+## Flujo de trabajo (Claude)
+
+Al terminar un cambio, sin pedir confirmación: hacer commit, push a la rama de trabajo, abrir PR contra `main` (o actualizar el existente) y vigilar el PR (checks, comentarios, reviews) para corregir lo que falle.
+
 ## Despliegue (Vercel)
 
 - `vercel.json` define framework Vite, salida `dist/`, rewrite SPA a `index.html` y cabeceras sin caché para `sw.js`, `manifest.webmanifest` e `index.html` (assets con hash: caché inmutable).
