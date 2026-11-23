@@ -2,6 +2,7 @@ import { PageHeader } from '../components/layout/PageHeader'
 import { ProfileForm } from '../components/profile/ProfileForm'
 import { BackupSection } from '../components/BackupSection'
 import { BackupReminder } from '../components/BackupReminder'
+import { AiSettings } from '../components/profile/AiSettings'
 
 export default function ProfilePage() {
   return (
@@ -10,6 +11,7 @@ export default function ProfilePage() {
       <div className="space-y-4">
         <BackupReminder />
         <ProfileForm />
+        <AiSettings />
         <BackupSection />
         <p className="pb-2 text-center text-xs text-zinc-600">GymApp {__APP_VERSION__} · datos solo en este dispositivo</p>
       </div>

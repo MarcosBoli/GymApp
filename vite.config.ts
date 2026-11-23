@@ -42,6 +42,8 @@ export default defineConfig({
         // Offline completo: precache de todo el bundle y fallback SPA
         globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest,woff,woff2,json}'],
         navigateFallback: '/index.html',
+        // Las funciones de IA nunca se sirven desde la caché del service worker
+        navigateFallbackDenylist: [/^\/api\//],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
@@ -50,7 +52,7 @@ export default defineConfig({
     }),
   ],
   test: {
-    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'server/**/*.test.ts'],
     environment: 'node',
   },
 })

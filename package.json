@@ -14,6 +14,7 @@
     "fake-data": "tsx --tsconfig tsconfig.app.json scripts/generate-fake-data.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.12.0",
     "@zxing/browser": "^0.2.1",
     "@zxing/library": "^0.23.0",
     "dexie": "^4.4.7",

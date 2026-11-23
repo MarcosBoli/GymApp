@@ -9,3 +9,6 @@ Thumbs.db
 coverage
 *.tsbuildinfo
 fake-data
+.env
+.env.*
+!.env.example

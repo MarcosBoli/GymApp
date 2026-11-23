@@ -24,12 +24,14 @@ src/
   components/  Componentes de UI reutilizables (layout/, icons/, …)
   pages/       Una página por tab/ruta: Inicio, Entrenar, Comida, Progreso, Perfil
   data/        Datos estáticos: músculos (muscles.ts), ejercicios con su mapeo a músculos (exercises.ts)…
-  lib/         Utilidades de navegador sin lógica de negocio (guardar archivos, sonido…)
+  lib/         Utilidades de navegador sin lógica de negocio (guardar archivos, sonido, cliente de /api…)
   store/       Stores Zustand de UI efímera (restTimer persistido en localStorage, trainUi)
   router.tsx   Rutas (/, /entrenar, /comida, /progreso, /perfil), cada página con `lazy` (chunk propio)
   main.tsx     Arranque: registro del SW, storage.persist(), render
   index.css    Tailwind + tema + utilidades safe-area (pt-safe, pb-safe, pl-safe, pr-safe)
 public/        Iconos PWA/iOS (generados desde public/logo.svg)
+api/           Funciones serverless de Vercel (entradas finas: health, chat, plan)
+server/ai/     Lógica de las funciones: secreto, límites, validación, llamada a Claude, errores (+ tests)
 ```
 
 ## Convenciones
@@ -82,6 +84,13 @@ public/        Iconos PWA/iOS (generados desde public/logo.svg)
   - Pantallas con varias consultas: render progresivo (cada bloque al llegar sus datos, con placeholder) en vez de esperar a todas.
   - `npm run fake-data` genera un año de datos realista (`fake-data/`, ignorado en git) para importar desde Perfil y medir.
 - **iOS/UX**: franja con desenfoque bajo la status bar (`AppShell`), `ScrollRestoration` por pestaña, recordatorio de backup en Perfil y punto en la pestaña si hay datos y la última copia tiene más de 14 días (`backupReminder`). El SW busca actualización al volver a primer plano.
+- **IA (funciones serverless de Vercel)** (`api/`, `server/ai/`, `src/lib/aiClient.ts`, `src/domain/aiErrors.ts`):
+  - `api/*.ts` son entradas finas (firma web `export default { fetch }`); la lógica está en `server/ai/` con dependencias inyectadas y tests sin red. Imports con extensión `.js` (ESM de Node); Vercel compila con el `compilerOptions` del `tsconfig.json` raíz (no sigue `references`).
+  - SDK oficial `@anthropic-ai/sdk` solo en el servidor. Variables: `ANTHROPIC_API_KEY`, `APP_SECRET` (obligatorias), `PLAN_MODEL` (def. `claude-sonnet-5-5`), `CHAT_MODEL` (def. `claude-haiku-5-5`). Nunca exponer la key al cliente.
+  - Cada petición lleva `x-app-secret` (comparación en tiempo constante; 401 si no coincide). El secreto vive en `localStorage` del dispositivo (Perfil › Asistente IA), fuera de los backups.
+  - Cuerpo ≤ `AI_MAX_BODY_BYTES` (64 KB, comprobado en app y servidor), validación de forma y tamaños; `maxDuration` 60 s (vercel.json) con timeouts del SDK por debajo.
+  - Errores: clases tipadas del SDK → códigos de `aiErrors.ts` (sin saldo, límite de gasto, timeout, JSON inválido…) con mensaje en español; el cliente también traduce respuestas que no son nuestras (504 de Vercel, sin conexión, /api no desplegada).
+  - Sonnet 5.5 (y otros modelos 5.x compatibles) con `fallbacks: "default"` del servidor ante negativas; `stop_reason: "refusal"` → error `refused`.
 - Textos de la UI en español. Rutas en español.
 - Cámara (`getUserMedia`, p. ej. escáner de códigos de barras) **solo funciona en HTTPS** → probar en las previews de Vercel, no en `http://<ip-local>`.
 
@@ -97,6 +106,7 @@ npm run test:watch          # tests en modo watch
 npm run typecheck           # solo comprobación de tipos
 npm run generate-pwa-assets # regenerar iconos desde public/logo.svg
 npm run fake-data           # 1 año de datos falsos → fake-data/*.json (importar en Perfil)
+npx vercel dev              # app + funciones /api en local (lee .env.local; ver .env.example)
 ```
 
 Desarrollo en Windows: los scripts son multiplataforma y `.gitattributes` fuerza finales de línea LF.
