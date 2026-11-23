@@ -4,8 +4,11 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 const BG = '#0a0a0f'
+// Versión visible en Perfil: package.json + commit (Vercel lo inyecta en VERCEL_GIT_COMMIT_SHA)
+const APP_VERSION = `${process.env.npm_package_version ?? '0.0.0'}+${(process.env.VERCEL_GIT_COMMIT_SHA ?? 'local').slice(0, 7)}`
 
 export default defineConfig({
+  define: { __APP_VERSION__: JSON.stringify(APP_VERSION) },
   plugins: [
     react(),
     tailwindcss(),

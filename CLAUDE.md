@@ -49,7 +49,8 @@ public/        Iconos PWA/iOS (generados desde public/logo.svg)
   - IDs de texto: slugs fijos en el catálogo semilla (`chest`, `bench_press`), `newId()` (UUID) en datos del usuario.
   - Días como `DateKey` local `'YYYY-MM-DD'`; instantes como `Timestamp` (ms).
   - El catálogo se siembra con `populate` (BD nueva) y en el `upgrade` de la v2 (instalaciones v1). Para añadir ejercicios en el futuro: nueva versión con `.upgrade()` que haga `bulkPut` de los nuevos.
-  - No duplicar datos derivables: peso actual = último `bodyweightLogs`; edad = `birthDate`. Excepción: `mealItems` guarda una copia de los valores del alimento para que el histórico no cambie.
+  - No duplicar datos derivables: peso actual = último `bodyweightLogs`; edad = `birthDate`. Excepciones: `mealItems` guarda una copia de los valores del alimento (histórico estable) y la `date` de su comida (v5, indexada para leer rangos de días en una consulta; `fillMealItemDates` la rellena en migraciones e imports antiguos).
+  - v4 añade el índice `performedAt` en `sets`. El entreno en curso se localiza con `settings.activeWorkoutId` (O(1), independiente de fechas).
   - Tests de BD con `fake-indexeddb/auto` y `createDb(nombreUnico)`.
 - **Backup**: `exportAll`/`importAll` cubren automáticamente todas las tablas de `db.tables`; importar reemplaza todo en una transacción.
 - **Ranking** (`src/domain/ranking.ts`, todo puro; parámetros en `src/data/rank-config.json` y estándares en `src/data/strength-standards.json`, ambos editables):
@@ -75,6 +76,12 @@ public/        Iconos PWA/iOS (generados desde public/logo.svg)
   - Silueta: polígonos propios de la mitad izquierda en `bodyMap.ts`, reflejados con `mirrorPoints`; cada músculo es un `<g role="button">` con `aria-label` y hay una lista equivalente debajo (el rango nunca va solo en el color).
   - Emblemas procedurales (`EMBLEM_SPECS`): cada tier añade capas; el test exige complejidad estrictamente creciente. No copiar emblemas de ningún juego.
   - Progreso: peso bruto + tendencia, mapa de calor de series/semana (rampa azul secuencial en `VOLUME_RAMP`) e historial de rangos desde `workout.summary`.
+- **Rendimiento** (medido con 1 año de datos y CPU ×4):
+  - Nunca leer tablas enteras que crecen con el tiempo (`sets`, `mealItems`, `workouts`) si basta una ventana: usar los índices `sets.performedAt`, `[exerciseId+performedAt]` y `mealItems.date`. Evitar `anyOf` con cientos de claves (un viaje a IndexedDB por clave).
+  - Gráficas Recharts sin animación (`isAnimationActive={false}`) y ≤ ~120 puntos (`bucketWeightTrend` agrega por semanas).
+  - Pantallas con varias consultas: render progresivo (cada bloque al llegar sus datos, con placeholder) en vez de esperar a todas.
+  - `npm run fake-data` genera un año de datos realista (`fake-data/`, ignorado en git) para importar desde Perfil y medir.
+- **iOS/UX**: franja con desenfoque bajo la status bar (`AppShell`), `ScrollRestoration` por pestaña, recordatorio de backup en Perfil y punto en la pestaña si hay datos y la última copia tiene más de 14 días (`backupReminder`). El SW busca actualización al volver a primer plano.
 - Textos de la UI en español. Rutas en español.
 - Cámara (`getUserMedia`, p. ej. escáner de códigos de barras) **solo funciona en HTTPS** → probar en las previews de Vercel, no en `http://<ip-local>`.
 
@@ -89,6 +96,7 @@ npm test                    # tests Vitest (una pasada)
 npm run test:watch          # tests en modo watch
 npm run typecheck           # solo comprobación de tipos
 npm run generate-pwa-assets # regenerar iconos desde public/logo.svg
+npm run fake-data           # 1 año de datos falsos → fake-data/*.json (importar en Perfil)
 ```
 
 Desarrollo en Windows: los scripts son multiplataforma y `.gitattributes` fuerza finales de línea LF.

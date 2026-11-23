@@ -1,8 +1,10 @@
 import { NavLink } from 'react-router'
 import { motion } from 'framer-motion'
 import { TABS } from './tabs'
+import { useBackupReminder } from '../BackupReminder'
 
 export function BottomTabBar() {
+  const backupDue = useBackupReminder() != null
   return (
     <nav
       aria-label="Navegación principal"
@@ -29,7 +31,12 @@ export function BottomTabBar() {
                       transition={{ type: 'spring', stiffness: 500, damping: 40 }}
                     />
                   )}
-                  <Icon className="size-6" />
+                  <span className="relative">
+                    <Icon className="size-6" />
+                    {path === '/perfil' && backupDue && (
+                      <span className="absolute -top-0.5 -right-1 size-2.5 rounded-full border-2 border-bg bg-amber-400" aria-label="Copia de seguridad pendiente" />
+                    )}
+                  </span>
                   <span>{label}</span>
                 </>
               )}

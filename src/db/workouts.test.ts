@@ -170,3 +170,69 @@ describe('perfil', () => {
     expect(await getBodyweightAt(T - 86_400_000, db)).toBeUndefined()
   })
 })
+
+describe('rendimiento: lecturas acotadas', () => {
+  it('v3 → v4 añade el índice por fecha sin perder series', async () => {
+    const name = `wk-${++n}`
+    const { default: Dexie } = await import('dexie')
+    const v3 = new Dexie(name)
+    v3.version(1).stores({ settings: 'key' })
+    v3.version(2).stores({ sets: 'id, workoutId, exerciseId, [workoutId+order], [exerciseId+performedAt]', workouts: 'id, startedAt, routineId', muscles: 'id, group', exercises: 'id, name', exerciseMuscles: '[exerciseId+muscleId], exerciseId, muscleId' })
+    v3.version(3).stores({ rankStates: 'id' })
+    await v3.table('sets').put({ id: 's1', workoutId: 'w', exerciseId: 'bench_press', order: 0, performedAt: T, reps: 5, weightKg: 100, isWarmup: false })
+    v3.close()
+    const db = createDb(name)
+    opened.push(db)
+    expect(await db.sets.where('performedAt').between(T - 1, T + 1).count()).toBe(1)
+  })
+
+  it('getActiveWorkout solo mira el último entreno', async () => {
+    const db = fresh()
+    for (let i = 0; i < 5; i++) {
+      const w = await startWorkout(T + i * 86_400_000, undefined, db)
+      await addSet(w.id, 'bench_press', { weightKg: 80, reps: 5, isWarmup: false }, T + i * 86_400_000 + 1, db)
+      await finishWorkout(w.id, T + i * 86_400_000 + 2, db)
+    }
+    expect(await getActiveWorkout(db)).toBeUndefined()
+    const w = await startWorkout(T + 10 * 86_400_000, undefined, db)
+    expect((await getActiveWorkout(db))?.id).toBe(w.id)
+  })
+
+  it('finishWorkout: récords contra todo el historial aunque los rangos lean solo 42 días', async () => {
+    const db = fresh()
+    await saveProfile(profile, T - 300 * 86_400_000, db)
+    const old = await startWorkout(T - 200 * 86_400_000, undefined, db)
+    await addSet(old.id, 'bench_press', { weightKg: 120, reps: 1, isWarmup: false }, T - 200 * 86_400_000, db)
+    await finishWorkout(old.id, T - 200 * 86_400_000 + 1, db)
+    const mid = await startWorkout(T - 10 * 86_400_000, undefined, db)
+    await addSet(mid.id, 'bench_press', { weightKg: 90, reps: 1, isWarmup: false }, T - 10 * 86_400_000, db)
+    await finishWorkout(mid.id, T - 10 * 86_400_000 + 1, db)
+
+    const w = await startWorkout(T, undefined, db)
+    await addSet(w.id, 'bench_press', { weightKg: 100, reps: 1, isWarmup: false }, T + 1, db)
+    await finishWorkout(w.id, T + 2, db)
+    // 100 supera lo de hace 10 días (90) pero no el récord de hace 200 días (120)
+    expect((await db.workouts.get(w.id))!.summary!.records).toEqual([])
+  })
+})
+
+describe('entreno en curso: puntero en settings', () => {
+  it('encuentra el entreno en curso aunque haya entrenos con fecha posterior (reloj cambiado, backup de otro móvil)', async () => {
+    const db = fresh()
+    const future = await startWorkout(T + 5 * 86_400_000, undefined, db)
+    await finishWorkout(future.id, T + 5 * 86_400_000 + 1, db)
+    const w = await startWorkout(T, undefined, db)
+    expect((await getActiveWorkout(db))?.id).toBe(w.id)
+    await finishWorkout(w.id, T + 1, db)
+    expect(await getActiveWorkout(db)).toBeUndefined()
+    const w2 = await startWorkout(T + 2, undefined, db)
+    await discardWorkout(w2.id, db)
+    expect(await getActiveWorkout(db)).toBeUndefined()
+  })
+
+  it('datos sin puntero (versión anterior o backup antiguo): lo encuentra recorriendo', async () => {
+    const db = fresh()
+    await db.workouts.add({ id: 'legacy', startedAt: T, exerciseIds: [] })
+    expect((await getActiveWorkout(db))?.id).toBe('legacy')
+  })
+})

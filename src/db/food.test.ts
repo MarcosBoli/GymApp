@@ -123,3 +123,34 @@ describe('comidas', () => {
     expect(inputs.days).toEqual([])
   })
 })
+
+describe('mealItems.date (v5)', () => {
+  it('migración v4 → v5 rellena la fecha desde la comida', async () => {
+    const { default: Dexie } = await import('dexie')
+    const name = `food-${++n}`
+    const old = new Dexie(name)
+    old.version(1).stores({ settings: 'key' })
+    old.version(2).stores({ meals: 'id, date, [date+type]', mealItems: 'id, mealId, foodId' })
+    old.version(3).stores({ rankStates: 'id' })
+    old.version(4).stores({})
+    await old.table('meals').put({ id: 'm1', date: '2026-11-20', type: 'lunch', createdAt: 1 })
+    await old.table('mealItems').put({ id: 'i1', mealId: 'm1', foodId: 'f', foodName: 'X', grams: 100, kcal: 200, proteinG: 0, carbsG: 0, fatG: 0 })
+    old.close()
+    const db = createDb(name)
+    opened.push(db)
+    expect((await db.mealItems.get('i1'))?.date).toBe('2026-11-20')
+    expect(await getDailyNutrition('2026-11-20', '2026-11-20', db)).toEqual([{ date: '2026-11-20', kcal: 200, proteinG: 0, carbsG: 0, fatG: 0 }])
+  })
+
+  it('importar un backup antiguo (sin date en mealItems) lo repara', async () => {
+    const db = fresh()
+    const { importAll } = await import('./backup')
+    await importAll({
+      app: 'gymapp', schemaVersion: 4, exportedAt: '', tables: {
+        meals: [{ id: 'm1', date: '2026-11-21', type: 'dinner', createdAt: 1 }],
+        mealItems: [{ id: 'i1', mealId: 'm1', foodId: 'f', foodName: 'X', grams: 50, kcal: 100, proteinG: 0, carbsG: 0, fatG: 0 }],
+      },
+    }, db)
+    expect((await getDayMeals('2026-11-21', db)).totals.kcal).toBe(50)
+  })
+})

@@ -45,6 +45,19 @@ export async function seedCatalog(tx: Transaction): Promise<void> {
   await tx.table('exerciseMuscles').bulkPut(exerciseMuscles)
 }
 
+/** Rellena mealItems.date desde su comida (migración v5 y backups antiguos). */
+export async function fillMealItemDates(tx: Transaction): Promise<void> {
+  const dates = new Map<string, string>()
+  await tx.table('meals').each((m: Meal) => dates.set(m.id, m.date))
+  await tx
+    .table('mealItems')
+    .filter((i: MealItem) => i.date === undefined)
+    .modify((i: MealItem) => {
+      const date = dates.get(i.mealId)
+      if (date) i.date = date
+    })
+}
+
 /**
  * Esquema versionado. Reglas:
  * - Nunca editar una versión ya publicada: añadir db.version(n + 1) con su .upgrade().
@@ -80,6 +93,18 @@ export function createDb(name = DB_NAME): GymDB {
   db.version(3).stores({
     rankStates: 'id',
   })
+
+  // v4: índice por fecha en las series para leer solo la ventana necesaria (rangos, Progreso…)
+  db.version(4).stores({
+    sets: 'id, workoutId, exerciseId, performedAt, [workoutId+order], [exerciseId+performedAt]',
+  })
+
+  // v5: fecha indexada en mealItems (copiada de su comida) para leer días en una consulta
+  db.version(5)
+    .stores({
+      mealItems: 'id, mealId, foodId, date',
+    })
+    .upgrade(fillMealItemDates)
 
   // BD nueva (primer arranque): Dexie dispara populate una única vez
   db.on('populate', seedCatalog)

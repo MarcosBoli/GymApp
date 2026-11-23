@@ -215,3 +215,26 @@ export function weightWindow<T extends { date: DateKey }>(points: readonly T[], 
 export function chartExerciseOptions(contributions: readonly Contribution[], mostDone: readonly string[], max = 5): string[] {
   return [...new Set([...contributions.map((c) => c.exerciseId), ...mostDone])].slice(0, max)
 }
+
+/**
+ * Para rangos largos, agrega el peso por semanas (media de los pesajes y tendencia al
+ * final de la semana): 365 puntos no caben en 390 px y cuestan mucho de pintar.
+ */
+export function bucketWeightTrend<T extends { date: DateKey; weightKg?: number; trendKg: number }>(
+  points: readonly T[],
+  maxPoints = 120,
+): { date: DateKey; weightKg?: number; trendKg: number }[] {
+  if (points.length <= maxPoints) return [...points]
+  const weeks = new Map<DateKey, { sum: number; n: number; trendKg: number }>()
+  for (const p of points) {
+    const w = startOfWeek(p.date)
+    const b = weeks.get(w) ?? { sum: 0, n: 0, trendKg: p.trendKg }
+    if (p.weightKg !== undefined) {
+      b.sum += p.weightKg
+      b.n++
+    }
+    b.trendKg = p.trendKg
+    weeks.set(w, b)
+  }
+  return [...weeks.entries()].map(([date, b]) => (b.n ? { date, weightKg: b.sum / b.n, trendKg: b.trendKg } : { date, trendKg: b.trendKg }))
+}

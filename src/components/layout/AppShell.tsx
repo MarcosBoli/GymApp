@@ -1,4 +1,4 @@
-import { Outlet, useLocation } from 'react-router'
+import { Outlet, ScrollRestoration, useLocation } from 'react-router'
 import { motion } from 'framer-motion'
 import { BottomTabBar } from './BottomTabBar'
 import { RestTimerBar } from '../train/RestTimerBar'
@@ -8,6 +8,10 @@ export function AppShell() {
 
   return (
     <div className="min-h-dvh pt-safe pl-safe pr-safe">
+      {/* Status bar black-translucent: el contenido que sube no se mezcla con la hora/batería */}
+      <div aria-hidden className="fixed inset-x-0 top-0 z-30 h-[env(safe-area-inset-top)] bg-bg/85 backdrop-blur-xl" />
+      {/* Cada pestaña recuerda su scroll; las pantallas nuevas empiezan arriba */}
+      <ScrollRestoration getKey={(location) => location.pathname} />
       {/* Hueco inferior = altura de la tab bar + home indicator */}
       <main className="mx-auto max-w-lg pb-[calc(var(--spacing-tabbar)+env(safe-area-inset-bottom)+1rem)]">
         <motion.div

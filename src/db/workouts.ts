@@ -3,13 +3,30 @@ import type { RoutineExercise, Workout, WorkoutSet } from '../domain/types'
 import { buildWorkoutSummary } from '../domain/summary'
 import type { PromotionState } from '../domain/ranking'
 import { toDateKey } from '../domain/dates'
+import { DAY_MS } from '../domain/ranking'
+import { RANK_CONFIG } from '../data/ranking'
 import { db as defaultDb, type GymDB } from './db'
 import { newId } from './ids'
 
-/** Entreno en curso (sin endedAt); como mucho hay uno. */
+/** Clave en `settings` con el id del entreno en curso (null = ninguno). */
+export const ACTIVE_WORKOUT_KEY = 'activeWorkoutId'
+
+/**
+ * Entreno en curso (como mucho uno). O(1) gracias a `settings.activeWorkoutId`, sin
+ * depender de fechas (relojes cambiados, backups de otro dispositivo…). Si la clave no
+ * existe (datos de versiones anteriores), se recorre el historial.
+ */
 export async function getActiveWorkout(db: GymDB = defaultDb): Promise<Workout | undefined> {
-  return (await db.workouts.orderBy('startedAt').reverse().filter((w) => w.endedAt === undefined).first()) ?? undefined
+  const pointer = await db.settings.get(ACTIVE_WORKOUT_KEY)
+  if (pointer) {
+    if (typeof pointer.value !== 'string') return undefined
+    const w = await db.workouts.get(pointer.value)
+    return w && w.endedAt === undefined ? w : undefined
+  }
+  return db.workouts.orderBy('startedAt').reverse().filter((w) => w.endedAt === undefined).first()
 }
+
+const setActivePointer = (db: GymDB, id: string | null) => db.settings.put({ key: ACTIVE_WORKOUT_KEY, value: id })
 
 export async function getLastFinishedWorkout(db: GymDB = defaultDb): Promise<Workout | undefined> {
   return db.workouts.orderBy('startedAt').reverse().filter((w) => w.endedAt !== undefined).first()
@@ -17,7 +34,7 @@ export async function getLastFinishedWorkout(db: GymDB = defaultDb): Promise<Wor
 
 /** Empieza un entreno vacío o desde una rutina. Si ya hay uno en curso, lo devuelve. */
 export async function startWorkout(now: number, routineId?: string, db: GymDB = defaultDb): Promise<Workout> {
-  return db.transaction('rw', [db.workouts, db.routineExercises], async () => {
+  return db.transaction('rw', [db.workouts, db.routineExercises, db.settings], async () => {
     const active = await getActiveWorkout(db)
     if (active) return active
     const exerciseIds = routineId
@@ -25,6 +42,7 @@ export async function startWorkout(now: number, routineId?: string, db: GymDB = 
       : []
     const workout: Workout = { id: newId(), routineId, startedAt: now, exerciseIds }
     await db.workouts.add(workout)
+    await setActivePointer(db, workout.id)
     return workout
   })
 }
@@ -88,10 +106,21 @@ export async function getLastSessionSets(exerciseId: string, excludeWorkoutId: s
 }
 
 export async function discardWorkout(workoutId: string, db: GymDB = defaultDb): Promise<void> {
-  await db.transaction('rw', [db.workouts, db.sets], async () => {
+  await db.transaction('rw', [db.workouts, db.sets, db.settings], async () => {
     await db.sets.where('workoutId').equals(workoutId).delete()
     await db.workouts.delete(workoutId)
+    await setActivePointer(db, null)
   })
+}
+
+/** Series con performedAt en [from, to] (índice por fecha: no recorre todo el historial). */
+export async function getSetsBetween(from: number, to: number, db: GymDB = defaultDb): Promise<WorkoutSet[]> {
+  return db.sets.where('performedAt').between(from, to, true, true).toArray()
+}
+
+/** Todas las series de un ejercicio (índice [exerciseId+performedAt]). */
+export async function getExerciseSets(exerciseId: string, db: GymDB = defaultDb): Promise<WorkoutSet[]> {
+  return db.sets.where('[exerciseId+performedAt]').between([exerciseId, Dexie.minKey], [exerciseId, Dexie.maxKey]).toArray()
 }
 
 /** Peso más reciente registrado hasta `now` (incluido ese día). */
@@ -107,13 +136,19 @@ export async function getBodyweightAt(now: number, db: GymDB = defaultDb): Promi
 export async function finishWorkout(workoutId: string, now: number, db: GymDB = defaultDb): Promise<void> {
   await db.transaction(
     'rw',
-    [db.workouts, db.sets, db.rankStates, db.exerciseMuscles, db.muscles, db.userProfile, db.bodyweightLogs],
+    [db.workouts, db.sets, db.rankStates, db.exerciseMuscles, db.muscles, db.userProfile, db.bodyweightLogs, db.settings],
     async () => {
       const workout = await db.workouts.get(workoutId)
       if (!workout || workout.endedAt !== undefined) return
 
-      const [sets, exerciseMuscles, muscles, profile, bodyweightKg, stateRows] = await Promise.all([
-        db.sets.toArray(),
+      // Solo lo necesario: la ventana de fuerza (para los rangos antes/después) y, para los
+      // récords, el historial completo de los ejercicios de este entreno.
+      const windowStart = workout.startedAt - (RANK_CONFIG.windows.strengthDays + 1) * DAY_MS
+      // Los ejercicios salen de las series reales (no de exerciseIds, que podría no incluirlos)
+      const exerciseIds = [...new Set((await getWorkoutSets(workoutId, db)).map((s) => s.exerciseId))]
+      const [windowSets, exerciseHistory, exerciseMuscles, muscles, profile, bodyweightKg, stateRows] = await Promise.all([
+        getSetsBetween(windowStart, now, db),
+        Promise.all(exerciseIds.map((id) => getExerciseSets(id, db))).then((l) => l.flat()),
         db.exerciseMuscles.toArray(),
         db.muscles.orderBy('id').toArray(),
         db.userProfile.get('me'),
@@ -121,6 +156,7 @@ export async function finishWorkout(workoutId: string, now: number, db: GymDB = 
         db.rankStates.toArray(),
       ])
       const rankStates: Record<string, PromotionState> = Object.fromEntries(stateRows.map((r) => [r.id, r.state]))
+      const sets = [...new Map([...windowSets, ...exerciseHistory].map((s) => [s.id, s])).values()]
 
       const { summary, rankStates: next } = buildWorkoutSummary({
         workout,
@@ -134,6 +170,7 @@ export async function finishWorkout(workoutId: string, now: number, db: GymDB = 
       })
 
       await db.workouts.update(workoutId, { endedAt: now, summary })
+      await setActivePointer(db, null)
       await db.rankStates.bulkPut(Object.entries(next).map(([id, state]) => ({ id, state })))
     },
   )

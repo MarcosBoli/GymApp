@@ -1,10 +1,10 @@
 import { lazy, Suspense, useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { weightTrend } from '../domain/energy'
-import { rankHistory, weeklyVolumeByMuscle, weightWindow } from '../domain/progress'
+import { bucketWeightTrend, rankHistory, weeklyVolumeByMuscle, weightWindow } from '../domain/progress'
 import { GLOBAL_RANK_ID } from '../domain/summary'
 import { formatDecimal } from '../domain/number'
-import { getProgressInputs } from '../db/rankings'
+import { getProgressInputs, VOLUME_WEEKS } from '../db/rankings'
 import { PageHeader } from '../components/layout/PageHeader'
 import { VolumeHeatmap } from '../components/progress/VolumeHeatmap'
 import { DATA_COLORS } from '../components/dataColors'
@@ -25,7 +25,9 @@ export default function ProgressPage() {
   const [rankId, setRankId] = useState(GLOBAL_RANK_ID)
 
   const trend = useMemo(() => (data ? weightWindow(weightTrend(data.weights), data.today, range) : []), [data, range])
-  const volume = useMemo(() => (data ? weeklyVolumeByMuscle(data.sets, data.exerciseMuscles, data.today, 8) : null), [data])
+  // Rangos largos: medias semanales (menos puntos que pintar, misma lectura)
+  const chartPoints = useMemo(() => bucketWeightTrend(trend), [trend])
+  const volume = useMemo(() => (data ? weeklyVolumeByMuscle(data.sets, data.exerciseMuscles, data.today, VOLUME_WEEKS) : null), [data])
   const history = useMemo(() => (data ? rankHistory(data.workouts, rankId) : []), [data, rankId])
   const rankOptions = useMemo(
     () => (data ? [{ id: GLOBAL_RANK_ID, name: 'Global' }, ...data.muscles.filter((m) => rankHistory(data.workouts, m.id).length > 0)] : []),
@@ -62,11 +64,11 @@ export default function ProgressPage() {
           ) : (
             <>
               <div className="mb-1 flex gap-4 text-xs text-zinc-400">
-                <span className="flex items-center gap-1.5"><span aria-hidden className="size-2.5 rounded-full" style={{ background: DATA_COLORS.rawWeight }} />Peso registrado</span>
+                <span className="flex items-center gap-1.5"><span aria-hidden className="size-2.5 rounded-full" style={{ background: DATA_COLORS.rawWeight }} />{chartPoints.length < trend.length ? 'Media semanal' : 'Peso registrado'}</span>
                 <span className="flex items-center gap-1.5"><span aria-hidden className="h-0.5 w-4 rounded" style={{ background: DATA_COLORS.trend }} />Tendencia</span>
               </div>
               <Suspense fallback={<div className="h-52" />}>
-                <BodyweightChart data={trend} />
+                <BodyweightChart data={chartPoints} />
               </Suspense>
             </>
           )}
@@ -74,7 +76,11 @@ export default function ProgressPage() {
 
         <section className="rounded-2xl border border-border bg-surface p-4">
           <h2 className="mb-2 text-lg font-semibold">Volumen semanal por músculo</h2>
-          <VolumeHeatmap weekStarts={volume.weekStarts} rows={data.muscles.map((m) => ({ id: m.id, name: m.name, values: volume.byMuscle.get(m.id) ?? volume.weekStarts.map(() => 0) }))} />
+          {volume.byMuscle.size === 0 ? (
+            <p className="py-6 text-center text-sm text-zinc-500">Sin series en las últimas 8 semanas. Cada serie que registres en Entrenar sumará aquí a sus músculos.</p>
+          ) : (
+            <VolumeHeatmap weekStarts={volume.weekStarts} rows={data.muscles.map((m) => ({ id: m.id, name: m.name, values: volume.byMuscle.get(m.id) ?? volume.weekStarts.map(() => 0) }))} />
+          )}
         </section>
 
         <section className="rounded-2xl border border-border bg-surface p-4">

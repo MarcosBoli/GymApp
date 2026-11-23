@@ -53,6 +53,13 @@ export default function FoodPage() {
           </section>
         )}
 
+        {day && day.totals.kcal === 0 && Object.values(day.byType).every((m) => m.items.length === 0) && (
+          <p className="rounded-2xl border border-dashed border-border px-4 py-4 text-center text-sm text-zinc-400">
+            {date === today ? 'Aún no has registrado nada hoy.' : 'Nada registrado este día.'} Pulsa <span className="font-semibold text-accent">+ Añadir</span> en una comida para buscar,
+            escanear el código de barras o crear un alimento.
+          </p>
+        )}
+
         {day &&
           MEAL_TYPES.map(({ id, label }) => {
             const slot = day.byType[id]

@@ -1,10 +1,12 @@
 import { lazy, Suspense, useMemo, useState } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
 import type { MuscleStatus, RankOverview } from '../../domain/progress'
 import { chartExerciseOptions, e1rmHistory, exercisesForMuscle, lpToNext, muscleContributions } from '../../domain/progress'
 import { formatRank } from '../../domain/ranking'
 import { formatDecimal } from '../../domain/number'
 import { calendarDaysBetween } from '../../domain/dates'
 import type { RankingInputs } from '../../db/rankings'
+import { getExerciseSets } from '../../db/workouts'
 import { RANK_CONFIG } from '../../data/ranking'
 import { useHomeUi } from '../../store/homeUi'
 import { Sheet } from '../Sheet'
@@ -29,7 +31,11 @@ function Body({ muscle, overview, inputs }: { muscle: MuscleStatus; overview: Ra
     [muscle.muscleId, inputs, contributions],
   )
   const [exerciseId, setExerciseId] = useState(options[0])
-  const history = useMemo(() => (exerciseId ? e1rmHistory(inputs.sets, exerciseId, { bodyweightKg: inputs.bodyweightKg }) : []), [exerciseId, inputs])
+  // Historial completo del ejercicio bajo demanda (los rangos solo cargan la ventana de 42 días)
+  const history = useLiveQuery(
+    async () => (exerciseId ? e1rmHistory(await getExerciseSets(exerciseId), exerciseId, { bodyweightKg: inputs.bodyweightKg }) : []),
+    [exerciseId, inputs.bodyweightKg],
+  )
   const r = muscle.displayed
   const name = (id: string) => inputs.exerciseNames.get(id) ?? id
   const color = r ? (RANK_CONFIG.tiers[r.tierIndex]?.color ?? '#888') : '#52525b'
@@ -79,7 +85,9 @@ function Body({ muscle, overview, inputs }: { muscle: MuscleStatus; overview: Ra
                 </button>
               ))}
             </div>
-            {history.length === 0 ? (
+            {history === undefined ? (
+              <div className="h-44" />
+            ) : history.length === 0 ? (
               <p className="text-sm text-zinc-500">Sin series válidas para calcular el e1RM.</p>
             ) : (
               <Suspense fallback={<div className="h-44" />}>

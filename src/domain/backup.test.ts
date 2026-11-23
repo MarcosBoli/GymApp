@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { backupFileName, createBackup, describeLastBackup, parseBackup } from './backup'
+import { backupFileName, backupReminder, createBackup, describeLastBackup, parseBackup } from './backup'
 
 const opts = { tableNames: ['muscles', 'sets'], currentVersion: 2 }
 const now = new Date(2026, 10, 22, 18, 30)
@@ -51,8 +51,25 @@ describe('describeLastBackup', () => {
     [new Date(2026, 10, 22, 9).getTime(), 'Hoy', false],
     [new Date(2026, 10, 21, 23).getTime(), 'Ayer', false],
     [new Date(2026, 10, 16, 12).getTime(), 'Hace 6 días', false],
-    [new Date(2026, 10, 15, 12).getTime(), 'Hace 7 días', true],
+    [new Date(2026, 10, 8, 12).getTime(), 'Hace 14 días', false],
+    [new Date(2026, 10, 7, 12).getTime(), 'Hace 15 días', true],
   ])('%s → %s', (last, label, stale) => {
     expect(describeLastBackup(last, now)).toEqual({ label, stale })
+  })
+})
+
+describe('backupReminder', () => {
+  it('sin datos propios no recuerda nada', () => {
+    expect(backupReminder(undefined, now, false)).toBeNull()
+  })
+
+  it('con datos y sin backup nunca', () => {
+    expect(backupReminder(undefined, now, true)).toEqual({ kind: 'never' })
+  })
+
+  it('solo a partir de más de 14 días', () => {
+    expect(backupReminder(new Date(2026, 10, 8, 23).getTime(), now, true)).toBeNull() // 14 días
+    expect(backupReminder(new Date(2026, 10, 7, 9).getTime(), now, true)).toEqual({ kind: 'stale', days: 15 })
+    expect(backupReminder(new Date(2026, 8, 1).getTime(), now, true)).toEqual({ kind: 'stale', days: 82 })
   })
 })

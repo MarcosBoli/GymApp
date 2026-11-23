@@ -1,5 +1,5 @@
 import { createBackup, type Backup, type BackupTables } from '../domain/backup'
-import { db as defaultDb, seedCatalog, type GymDB } from './db'
+import { db as defaultDb, fillMealItemDates, seedCatalog, type GymDB } from './db'
 
 export const LAST_BACKUP_KEY = 'lastBackupAt'
 
@@ -33,6 +33,8 @@ export async function importAll(backup: Backup, db: GymDB = defaultDb): Promise<
     if (lastBackup) await db.settings.put(lastBackup)
     // Un backup sin catálogo dejaría la app sin músculos/ejercicios
     if ((await db.muscles.count()) === 0) await seedCatalog(tx)
+    // Backups de versiones anteriores: completar campos derivados que ahora se indexan
+    await fillMealItemDates(tx)
   })
 }
 
@@ -43,4 +45,10 @@ export async function markBackupDone(now: Date, db: GymDB = defaultDb): Promise<
 export async function getLastBackupAt(db: GymDB = defaultDb): Promise<number | undefined> {
   const value = (await db.settings.get(LAST_BACKUP_KEY))?.value
   return typeof value === 'number' ? value : undefined
+}
+
+/** ¿Hay datos propios que perder? (entrenos, comidas, pesajes o perfil; el catálogo semilla no cuenta) */
+export async function hasUserData(db: GymDB = defaultDb): Promise<boolean> {
+  const counts = await Promise.all([db.workouts.count(), db.meals.count(), db.bodyweightLogs.count(), db.userProfile.count()])
+  return counts.some((c) => c > 0)
 }

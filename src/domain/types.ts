@@ -134,6 +134,8 @@ export interface Meal {
 export interface MealItem {
   id: string
   mealId: string
+  /** Fecha de la comida (copia indexada: permite leer rangos de días en una sola consulta). */
+  date?: DateKey
   foodId: string
   grams: number
   /** Para ordenar los alimentos dentro de la comida. */

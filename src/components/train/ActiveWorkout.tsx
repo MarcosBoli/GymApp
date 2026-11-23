@@ -66,6 +66,11 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
       </header>
 
       <div className="space-y-3 px-4 pt-4">
+        {workout.exerciseIds.length === 0 && (
+          <p className="px-2 pt-6 pb-2 text-center text-zinc-400">
+            Añade tu primer ejercicio. Cada serie se guarda al momento, así que puedes cerrar la app sin perder nada.
+          </p>
+        )}
         {workout.exerciseIds.map((id) => {
           const exercise = catalog.exerciseById.get(id)
           if (!exercise) return null

@@ -1,33 +1,17 @@
-import { useRef, useState, type ChangeEvent } from 'react'
+import { useRef, type ChangeEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { backupFileName, describeLastBackup, parseBackup } from '../domain/backup'
-import { backupTableNames, exportAll, getLastBackupAt, importAll, markBackupDone } from '../db/backup'
+import { describeLastBackup, parseBackup } from '../domain/backup'
+import { backupTableNames, getLastBackupAt, importAll } from '../db/backup'
 import { db } from '../db/db'
-import { saveJsonFile } from '../lib/files'
-
-type Status = { kind: 'idle' } | { kind: 'busy' } | { kind: 'ok' | 'error'; text: string }
+import { useBackupExport } from './useBackupExport'
 
 const dateFormat = new Intl.DateTimeFormat('es-ES', { dateStyle: 'medium', timeStyle: 'short' })
 
 export function BackupSection() {
   const last = useLiveQuery(async () => ({ at: await getLastBackupAt() }))
-  const [status, setStatus] = useState<Status>({ kind: 'idle' })
+  const { status, setStatus, exportNow: handleExport } = useBackupExport()
   const fileInput = useRef<HTMLInputElement>(null)
   const busy = status.kind === 'busy'
-
-  async function handleExport() {
-    setStatus({ kind: 'busy' })
-    try {
-      const now = new Date()
-      const backup = await exportAll(now)
-      const result = await saveJsonFile(backupFileName(now), backup)
-      if (result === 'cancelled') return setStatus({ kind: 'idle' })
-      await markBackupDone(now)
-      setStatus({ kind: 'ok', text: 'Copia de seguridad exportada.' })
-    } catch {
-      setStatus({ kind: 'error', text: 'No se pudo exportar la copia de seguridad.' })
-    }
-  }
 
   async function handleImport(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]

@@ -47,11 +47,8 @@ export async function listFavoriteFoods(db: GymDB = defaultDb): Promise<Food[]> 
 
 /** Alimentos usados recientemente (de las comidas de los últimos `days` días), el más reciente primero. */
 export async function listRecentFoods(today: DateKey, limit = 15, days = 30, db: GymDB = defaultDb): Promise<Food[]> {
-  const meals = await db.meals.where('date').between(addDays(today, -days), today, true, true).toArray()
-  meals.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt)
-  const items = await db.mealItems.where('mealId').anyOf(meals.map((m) => m.id)).toArray()
-  const order = new Map(meals.map((m, i) => [m.id, i]))
-  items.sort((a, b) => order.get(a.mealId)! - order.get(b.mealId)!)
+  const items = await db.mealItems.where('date').between(addDays(today, -days), today, true, true).toArray()
+  items.sort((a, b) => b.date!.localeCompare(a.date!) || (b.createdAt ?? 0) - (a.createdAt ?? 0))
   const ids = [...new Set(items.map((i) => i.foodId))].slice(0, limit)
   const foods = await db.foods.bulkGet(ids)
   return foods.filter((f): f is Food => f !== undefined)
@@ -74,7 +71,7 @@ export async function addFoodToMeal(
       meal = { id: newId(), date, type, createdAt: now }
       await db.meals.add(meal)
     }
-    const item: MealItem = { id: newId(), mealId: meal.id, grams, createdAt: now, ...mealItemSnapshot(food) }
+    const item: MealItem = { id: newId(), mealId: meal.id, date, grams, createdAt: now, ...mealItemSnapshot(food) }
     await db.mealItems.add(item)
     return item
   })
@@ -100,8 +97,7 @@ export interface DayMeals {
 }
 
 export async function getDayMeals(date: DateKey, db: GymDB = defaultDb): Promise<DayMeals> {
-  const meals = await db.meals.where('date').equals(date).toArray()
-  const items = await db.mealItems.where('mealId').anyOf(meals.map((m) => m.id)).toArray()
+  const [meals, items] = await Promise.all([db.meals.where('date').equals(date).toArray(), db.mealItems.where('date').equals(date).toArray()])
   const empty = () => ({ items: [] as MealItem[], totals: { ...ZERO_NUTRITION } })
   const byType: DayMeals['byType'] = { breakfast: empty(), lunch: empty(), dinner: empty(), snack: empty() }
   for (const meal of meals.sort((a, b) => a.createdAt - b.createdAt)) {
@@ -114,15 +110,14 @@ export async function getDayMeals(date: DateKey, db: GymDB = defaultDb): Promise
   return { byType, totals: sumNutrition(Object.values(byType).map((s) => s.totals)) }
 }
 
-/** Totales por día con comida registrada en [from, to]. */
+/** Totales por día con comida registrada en [from, to] (una sola consulta por el índice de fecha). */
 export async function getDailyNutrition(from: DateKey, to: DateKey, db: GymDB = defaultDb): Promise<DayNutrition[]> {
-  const meals = await db.meals.where('date').between(from, to, true, true).toArray()
-  const items = await db.mealItems.where('mealId').anyOf(meals.map((m) => m.id)).toArray()
-  const dateOf = new Map(meals.map((m) => [m.id, m.date]))
+  const items = await db.mealItems.where('date').between(from, to, true, true).toArray()
   const byDate = new Map<DateKey, Nutrition[]>()
   for (const i of items) {
-    const d = dateOf.get(i.mealId)!
-    byDate.set(d, [...(byDate.get(d) ?? []), itemNutrition(i)])
+    const list = byDate.get(i.date!)
+    if (list) list.push(itemNutrition(i))
+    else byDate.set(i.date!, [itemNutrition(i)])
   }
   return [...byDate.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([date, list]) => ({ date, ...sumNutrition(list) }))
 }

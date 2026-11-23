@@ -28,7 +28,7 @@ export default function E1rmChart({ data }: { data: { date: string; e1rm: number
               ) : null
             }}
           />
-          <Line type="monotone" dataKey="e1rm" stroke={DATA_COLORS.protein} strokeWidth={2} dot={{ r: 4, fill: DATA_COLORS.protein, stroke: '#15151d', strokeWidth: 2 }} activeDot={{ r: 6 }} />
+          <Line type="monotone" dataKey="e1rm" isAnimationActive={false} stroke={DATA_COLORS.protein} strokeWidth={2} dot={{ r: 4, fill: DATA_COLORS.protein, stroke: '#15151d', strokeWidth: 2 }} activeDot={{ r: 6 }} />
         </LineChart>
       </ResponsiveContainer>
     </div>

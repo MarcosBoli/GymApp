@@ -34,18 +34,28 @@ export default function HomePage() {
     return { inputs, overview: buildRankOverview(inputs) }
   }, [today])
 
-  if (!overview || !todayWeight || !ranks) return null
-
+  // Render progresivo: cada bloque aparece en cuanto llegan sus datos (sin pantalla en blanco)
   return (
     <>
       <PageHeader title="Inicio" />
       <div className="space-y-4 px-4">
-        <GlobalRankHeader global={ranks.overview.global} />
-        <WeakLinkCard weak={ranks.overview.weakLink} inactive={ranks.overview.inactive} />
-        <BodyMap muscles={ranks.overview.muscles} />
-        <MuscleList muscles={ranks.overview.muscles} />
+        {!ranks ? (
+          <>
+            <Placeholder className="h-36" />
+            <Placeholder className="h-[460px]" />
+          </>
+        ) : (
+          <>
+            <GlobalRankHeader global={ranks.overview.global} />
+            <WeakLinkCard weak={ranks.overview.weakLink} inactive={ranks.overview.inactive} />
+            <BodyMap muscles={ranks.overview.muscles} />
+            {ranks.overview.muscles.some((m) => m.displayed || m.lastTrainedAt !== undefined) && <MuscleList muscles={ranks.overview.muscles} />}
+          </>
+        )}
 
-        {!overview.ready ? (
+        {!overview ? (
+          <Placeholder className="h-36" />
+        ) : !overview.ready ? (
           <div className="rounded-2xl border border-amber-400/30 bg-amber-400/5 p-4 text-sm text-amber-200">
             {overview.missing === 'profile' ? 'Completa tu perfil' : 'Registra tu peso'} para calcular tu gasto y tus objetivos.{' '}
             <Link to="/perfil" className="font-semibold underline">Ir a Perfil</Link>
@@ -88,11 +98,15 @@ export default function HomePage() {
           </>
         )}
 
-        <WeightQuickLog key={todayWeight.kg ?? 'none'} today={today} todayWeight={todayWeight.kg} />
+        {todayWeight && <WeightQuickLog key={todayWeight.kg ?? 'none'} today={today} todayWeight={todayWeight.kg} />}
       </div>
-      <MuscleSheet overview={ranks.overview} inputs={ranks.inputs} />
+      {ranks && <MuscleSheet overview={ranks.overview} inputs={ranks.inputs} />}
     </>
   )
+}
+
+function Placeholder({ className }: { className: string }) {
+  return <div aria-hidden className={`animate-pulse rounded-2xl border border-border bg-surface ${className}`} />
 }
 
 function CaloriesCard({ consumed, target, tdee, adaptive }: { consumed: number; target: number; tdee: number; adaptive: AdaptiveTdee }) {

@@ -1,5 +1,4 @@
 import { CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import type { TrendPoint } from '../../domain/energy'
 import { fromDateKey } from '../../domain/dates'
 import { formatDecimal } from '../../domain/number'
 import { DATA_COLORS } from '../dataColors'
@@ -8,7 +7,7 @@ const short = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short' 
 const long = new Intl.DateTimeFormat('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })
 
 /** Peso registrado (puntos) y peso tendencial (línea). */
-export default function BodyweightChart({ data }: { data: TrendPoint[] }) {
+export default function BodyweightChart({ data }: { data: { date: string; weightKg?: number; trendKg: number }[] }) {
   const points = data.map((d) => ({ ...d, t: fromDateKey(d.date).getTime() }))
   return (
     <div className="h-52" role="img" aria-label="Peso corporal y tendencia">
@@ -31,7 +30,7 @@ export default function BodyweightChart({ data }: { data: TrendPoint[] }) {
             }}
           />
           <Line dataKey="weightKg" stroke="none" isAnimationActive={false} dot={{ r: 3, fill: DATA_COLORS.rawWeight, stroke: '#15151d', strokeWidth: 1 }} activeDot={{ r: 5 }} connectNulls={false} />
-          <Line dataKey="trendKg" type="monotone" stroke={DATA_COLORS.trend} strokeWidth={2} dot={false} activeDot={{ r: 5 }} />
+          <Line dataKey="trendKg" type="monotone" isAnimationActive={false} stroke={DATA_COLORS.trend} strokeWidth={2} dot={false} activeDot={{ r: 5 }} />
         </ComposedChart>
       </ResponsiveContainer>
     </div>

@@ -38,7 +38,7 @@ export default function RankHistoryChart({ data }: { data: RankHistoryPoint[] })
               ) : null
             }}
           />
-          <Line dataKey="points" type="stepAfter" stroke={DATA_COLORS.trend} strokeWidth={2} dot={{ r: 4, fill: DATA_COLORS.trend, stroke: '#15151d', strokeWidth: 2 }} activeDot={{ r: 6 }} />
+          <Line dataKey="points" type="stepAfter" isAnimationActive={false} stroke={DATA_COLORS.trend} strokeWidth={2} dot={{ r: 4, fill: DATA_COLORS.trend, stroke: '#15151d', strokeWidth: 2 }} activeDot={{ r: 6 }} />
         </LineChart>
       </ResponsiveContainer>
     </div>

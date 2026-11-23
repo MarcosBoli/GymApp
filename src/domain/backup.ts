@@ -2,7 +2,7 @@ import { calendarDaysBetween, toDateKey } from './dates'
 
 export const BACKUP_APP_ID = 'gymapp'
 /** Pasados estos días sin backup se avisa al usuario. */
-export const BACKUP_STALE_DAYS = 7
+export const BACKUP_STALE_DAYS = 14
 
 export type BackupTables = Record<string, Record<string, unknown>[]>
 
@@ -86,5 +86,18 @@ export function describeLastBackup(lastBackupAt: number | undefined, now: Date):
   if (lastBackupAt === undefined) return { label: 'Nunca', stale: true }
   const days = Math.max(0, calendarDaysBetween(new Date(lastBackupAt), now))
   const label = days === 0 ? 'Hoy' : days === 1 ? 'Ayer' : `Hace ${days} días`
-  return { label, stale: days >= BACKUP_STALE_DAYS }
+  return { label, stale: days > BACKUP_STALE_DAYS }
+}
+
+export type BackupReminder = { kind: 'never' } | { kind: 'stale'; days: number } | null
+
+/**
+ * Recordatorio en Perfil: si hay datos propios y nunca se ha hecho backup, o si han
+ * pasado MÁS de BACKUP_STALE_DAYS días desde el último. Sin datos no se molesta.
+ */
+export function backupReminder(lastBackupAt: number | undefined, now: Date, hasUserData: boolean): BackupReminder {
+  if (!hasUserData) return null
+  if (lastBackupAt === undefined) return { kind: 'never' }
+  const days = calendarDaysBetween(new Date(lastBackupAt), now)
+  return days > BACKUP_STALE_DAYS ? { kind: 'stale', days } : null
 }

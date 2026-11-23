@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  bucketWeightTrend,
   buildRankOverview,
   chartExerciseOptions,
   e1rmHistory,
@@ -218,5 +219,25 @@ describe('chartExerciseOptions', () => {
     const c = [{ exerciseId: 'a' }, { exerciseId: 'b' }] as never
     expect(chartExerciseOptions(c, ['b', 'c', 'd'], 3)).toEqual(['a', 'b', 'c'])
     expect(chartExerciseOptions([], [])).toEqual([])
+  })
+})
+
+describe('bucketWeightTrend', () => {
+  it('con pocos puntos no cambia nada', () => {
+    const pts = [{ date: '2026-11-23', weightKg: 80, trendKg: 80 }]
+    expect(bucketWeightTrend(pts)).toEqual(pts)
+  })
+
+  it('con muchos puntos agrega por semanas (media del peso, tendencia al final)', () => {
+    const pts = Array.from({ length: 14 }, (_, i) => ({
+      date: `2026-11-${String(16 + i).padStart(2, '0')}`.replace('2026-11-31', '2026-12-01'),
+      ...(i % 2 === 0 ? { weightKg: 80 + i } : {}),
+      trendKg: 80 + i / 10,
+    })).filter((p) => p.date <= '2026-11-29')
+    const b = bucketWeightTrend(pts, 5)
+    expect(b.map((x) => x.date)).toEqual(['2026-11-16', '2026-11-23'])
+    expect(b[0]!.weightKg).toBeCloseTo((80 + 82 + 84 + 86) / 4)
+    expect(b[0]!.trendKg).toBeCloseTo(80.6)
+    expect(b[1]!.trendKg).toBeCloseTo(81.3)
   })
 })
