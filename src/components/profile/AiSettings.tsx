@@ -30,7 +30,7 @@ export function AiSettings() {
     setStatus({ kind: 'busy' })
     try {
       const h = await callAi<AiHealth>('/api/health')
-      setStatus({ kind: 'ok', text: `Conectado. Planes: ${h.models.plan} · Chat: ${h.models.chat}` })
+      setStatus({ kind: 'ok', text: `Conectado. Planes: ${h.models.plan} · Chat: ${h.models.chat}${h.models.food ? ` · Fotos: ${h.models.food}` : ''}` })
     } catch (err) {
       setStatus({ kind: 'error', text: err instanceof AiRequestError ? err.message : 'Error inesperado.' })
     }

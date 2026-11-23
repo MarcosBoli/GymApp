@@ -30,7 +30,7 @@ src/
   main.tsx     Arranque: registro del SW, storage.persist(), render
   index.css    Tailwind + tema + utilidades safe-area (pt-safe, pb-safe, pl-safe, pr-safe)
 public/        Iconos PWA/iOS (generados desde assets-src/logo.png)
-api/           Funciones serverless de Vercel (entradas finas: health, chat, plan)
+api/           Funciones serverless de Vercel (entradas finas: health, chat, plan, food-photo)
 server/ai/     Lógica de las funciones: secreto, límites, validación, llamada a Claude, errores (+ tests)
 ```
 
@@ -89,9 +89,9 @@ server/ai/     Lógica de las funciones: secreto, límites, validación, llamada
 - **iOS/UX**: franja con desenfoque bajo la status bar (`AppShell`), `ScrollRestoration` por pestaña, recordatorio de backup en Perfil y punto en la pestaña si hay datos y la última copia tiene más de 14 días (`backupReminder`). El SW busca actualización al volver a primer plano.
 - **IA (funciones serverless de Vercel)** (`api/`, `server/ai/`, `src/lib/aiClient.ts`, `src/domain/aiErrors.ts`):
   - `api/*.ts` son entradas finas (firma web `export default { fetch }`); la lógica está en `server/ai/` con dependencias inyectadas y tests sin red. Imports con extensión `.js` (ESM de Node); Vercel compila con el `compilerOptions` del `tsconfig.json` raíz (no sigue `references`).
-  - SDK oficial `@anthropic-ai/sdk` solo en el servidor. Variables: `ANTHROPIC_API_KEY`, `APP_SECRET` (obligatorias), `PLAN_MODEL` (def. `claude-sonnet-5-5`), `CHAT_MODEL` (def. `claude-haiku-5-5`). Nunca exponer la key al cliente.
+  - SDK oficial `@anthropic-ai/sdk` solo en el servidor. Variables: `ANTHROPIC_API_KEY`, `APP_SECRET` (obligatorias), `PLAN_MODEL` (def. `claude-sonnet-5-5`), `CHAT_MODEL` (def. `claude-haiku-5-5`), `FOOD_MODEL` (def. `claude-sonnet-5-5`). Nunca exponer la key al cliente. `/api/health` comprueba cada modelo distinto una vez.
   - Cada petición lleva `x-app-secret` (comparación en tiempo constante; 401 si no coincide). El secreto vive en `localStorage` del dispositivo (Perfil › Asistente IA), fuera de los backups.
-  - Cuerpo ≤ `AI_MAX_BODY_BYTES` (64 KB, comprobado en app y servidor), validación de forma y tamaños; `maxDuration` 60 s (vercel.json) con timeouts del SDK por debajo.
+  - Cuerpo ≤ `AI_MAX_BODY_BYTES` (64 KB, comprobado en app y servidor; `/api/food-photo` admite hasta `FOOD_PHOTO_MAX_BODY_BYTES` = 1,5 MB por la foto en base64), validación de forma y tamaños; `maxDuration` 60 s (vercel.json) con timeouts del SDK por debajo.
   - Errores: clases tipadas del SDK → códigos de `aiErrors.ts` (sin saldo, límite de gasto, timeout, JSON inválido…) con mensaje en español; el cliente también traduce respuestas que no son nuestras (504 de Vercel, sin conexión, /api no desplegada).
   - Sonnet 5.5 (y otros modelos 5.x compatibles) con `fallbacks: "default"` del servidor ante negativas; `stop_reason: "refusal"` → error `refused`.
 - **Rutina semanal con IA** (`src/domain/coachContext.ts`, `src/domain/plan.ts`, `src/domain/planSchema.ts`, `src/db/plans.ts`, `src/db/planGeneration.ts`, `server/ai/plan.ts`):
@@ -107,6 +107,11 @@ server/ai/     Lógica de las funciones: secreto, límites, validación, llamada
   - Contexto (`buildChatContext`, ≤ 16 000 caracteres): ejercicio (material, músculos, mejor e1RM 90 d, objetivo en el plan), rutina de la semana con los pesos de la app y nivel (rango global, eslabón débil, rangos por músculo con los del ejercicio primero). `chatRequestMessages` recorta el historial a los límites del servidor (`CHAT_LIMITS`).
   - Dolor: lo indica el system prompt (parar y consultar a fisio/médico, sin diagnosticar) y además la app muestra un aviso fijo si la última pregunta lo menciona (`mentionsPain`).
   - Respuestas con markdown mínimo (párrafos, listas, negrita) renderizado sin HTML (`parseChatMarkdown`). La hoja usa `useVisualViewport` para quedar encima del teclado de iOS.
+- **Comida por foto** (`server/ai/foodPhoto.ts`, `src/domain/foodPhotoSchema.ts`, `src/domain/foodPhoto.ts`, `src/lib/photo.ts`, `src/components/food/PhotoFlow.tsx`):
+  - `/api/food-photo`: JPEG en base64 + nota opcional → system prompt de nutricionista (alimentos visibles, gramos por referencias visuales, aceite/salsas, valores BEDCA/europeos, "no es comida" → `reconocida: false`). Tool use forzado (`registrar_estimacion`, esquema JSON desde zod con `z.toJSONSchema`, claves en español) validado con zod + `foodPhotoErrors` (kcal vs macros 4/4/9, densidad); UN reintento con los errores si queda tiempo; si no → `invalid_estimate`. Los totales se recalculan desde los items.
+  - Cliente: "Foto" junto a "Escanear código" (hoja `photo`, chunk propio). Dos entradas: cámara (`capture="environment"`, en iOS abre la cámara directamente) y galería (sin `capture`). `preparePhoto`: lado mayor 1024 px, JPEG 0,8, orientación EXIF corregida al decodificar con `<img>`.
+  - Borrador (`PhotoDraftItem` con valores por 100 g): gramos editables con recálculo proporcional, confianza (texto + color), borrar/añadir a mano, totales arriba, selector de comida y "Guardar en …".
+  - `saveFoodPhotoEstimate`: un `food` por alimento con `source: 'ia-foto'` (por 100 g, ración = gramos; se reutiliza el de mismo nombre) + sus `mealItems` → salen en recientes y se reutilizan sin IA. La foto NUNCA se guarda.
 - `MotionConfig reducedMotion="user"`: con "Reducir movimiento" de iOS no hay desplazamientos animados.
 - Textos de la UI en español. Rutas en español.
 - Cámara (`getUserMedia`, p. ej. escáner de códigos de barras) **solo funciona en HTTPS** → probar en las previews de Vercel, no en `http://<ip-local>`.

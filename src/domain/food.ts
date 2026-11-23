@@ -36,6 +36,9 @@ export function sumNutrition(list: readonly Nutrition[]): Nutrition {
 /** kcal calculadas a partir de los macros (4/4/9). */
 export const macroKcal = (n: Pick<Nutrition, 'proteinG' | 'carbsG' | 'fatG'>) => n.proteinG * 4 + n.carbsG * 4 + n.fatG * 9
 
+/** Línea secundaria de un alimento en las listas: marca, o de dónde salieron sus valores. */
+export const foodSubtitle = (food: Pick<Food, 'brand' | 'source'>): string => food.brand ?? (food.source === 'ia-foto' ? 'Estimado con IA (foto)' : 'Sin marca')
+
 /** Copia de los valores del alimento para guardar en un mealItem. */
 export function mealItemSnapshot(food: Food): Pick<MealItem, 'foodId' | 'foodName' | 'kcal' | 'proteinG' | 'carbsG' | 'fatG'> {
   return { foodId: food.id, foodName: food.name, kcal: food.kcal, proteinG: food.proteinG, carbsG: food.carbsG, fatG: food.fatG }

@@ -1,5 +1,7 @@
 import type { DateKey, Food, Meal, MealItem, MealType } from '../domain/types'
 import { itemNutrition, mealItemSnapshot, sumNutrition, ZERO_NUTRITION, type FoodValues, type Nutrition } from '../domain/food'
+import { foodValuesFromDraft, type PhotoDraftItem } from '../domain/foodPhoto'
+import { normalizeText } from '../domain/workout'
 import type { DayNutrition } from '../domain/energy'
 import { addDays } from '../domain/dates'
 import { db as defaultDb, type GymDB } from './db'
@@ -74,6 +76,34 @@ export async function addFoodToMeal(
     const item: MealItem = { id: newId(), mealId: meal.id, date, grams, createdAt: now, ...mealItemSnapshot(food) }
     await db.mealItems.add(item)
     return item
+  })
+}
+
+/**
+ * Guarda el borrador de una foto en la comida del día: un alimento por fila (source 'ia-foto',
+ * valores por 100 g) y su mealItem. Un alimento 'ia-foto' con el mismo nombre se reutiliza
+ * (con los valores nuevos) en vez de duplicarse; así aparecen en recientes y se reutilizan sin IA.
+ */
+export async function saveFoodPhotoEstimate(
+  date: DateKey,
+  type: MealType,
+  items: readonly PhotoDraftItem[],
+  now: number,
+  db: GymDB = defaultDb,
+): Promise<MealItem[]> {
+  return db.transaction('rw', [db.foods, db.meals, db.mealItems], async () => {
+    const existing = await db.foods.filter((f) => f.source === 'ia-foto').toArray()
+    const byName = new Map(existing.map((f) => [normalizeText(f.name), f]))
+    const saved: MealItem[] = []
+    for (const [i, item] of items.entries()) {
+      const values = foodValuesFromDraft(item)
+      const prev = byName.get(normalizeText(values.name))
+      const food = await saveFood(values, now, { id: prev?.id, source: 'ia-foto' }, db)
+      byName.set(normalizeText(food.name), food)
+      // createdAt escalonado: conserva el orden del borrador dentro de la comida
+      saved.push(await addFoodToMeal(date, type, food, item.grams, now + i, db))
+    }
+    return saved
   })
 }
 

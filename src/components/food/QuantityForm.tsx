@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import type { Food, MealType } from '../../domain/types'
-import { nutritionFor, parseGrams, quickGramOptions } from '../../domain/food'
+import { foodSubtitle, nutritionFor, parseGrams, quickGramOptions } from '../../domain/food'
 import { formatDecimal } from '../../domain/number'
 import { db } from '../../db/db'
 import { addFoodToMeal, deleteMealItem, toggleFavorite, updateMealItemGrams } from '../../db/food'
@@ -47,7 +47,7 @@ function Body({ mealType, mealLabel, date, itemId, grams: initialGrams, food }: 
         <div className="min-w-0 flex-1">
           <h3 className="text-xl font-semibold">{food.name}</h3>
           <p className="text-sm text-neutral-500">
-            {food.brand ?? 'Sin marca'} · {formatDecimal(Math.round(food.kcal))} kcal/100 g
+            {foodSubtitle(food)} · {formatDecimal(Math.round(food.kcal))} kcal/100 g
           </p>
         </div>
         <button

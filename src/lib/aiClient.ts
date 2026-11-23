@@ -1,5 +1,6 @@
 import { AI_MAX_BODY_BYTES, aiError, aiErrorFromResponse, isAiErrorCode, type AiErrorInfo } from '../domain/aiErrors'
 import { CHAT_STREAM_CONTENT_TYPE, splitChatEvents } from '../domain/chatStream'
+import { FOOD_PHOTO_MAX_BODY_BYTES } from '../domain/foodPhotoSchema'
 import type { ChatTurn } from '../domain/coachChat'
 import { getAiSecret } from './aiSecret'
 
@@ -21,25 +22,27 @@ export interface AiTextResult {
 
 export interface AiHealth {
   ok: true
-  models: { plan: string; chat: string }
+  /** `food` falta en despliegues anteriores al paso 10. */
+  models: { plan: string; chat: string; food?: string }
 }
 
 /** Algo más que el maxDuration de la función (60 s): si Vercel corta antes, llega su 504. */
 const CLIENT_TIMEOUT_MS = 65_000
 
 /** Comprobaciones comunes antes de llamar a /api: secreto, conexión y tamaño. */
-function prepare(body: unknown): { secret: string; payload: string | undefined } {
+function prepare(body: unknown, maxBytes = AI_MAX_BODY_BYTES): { secret: string; payload: string | undefined } {
   const secret = getAiSecret()
   if (!secret) throw new AiRequestError(aiError('missing_secret'))
   if (!navigator.onLine) throw new AiRequestError(aiError('offline'))
   const payload = body === undefined ? undefined : JSON.stringify(body)
-  if (payload && new TextEncoder().encode(payload).byteLength > AI_MAX_BODY_BYTES) throw new AiRequestError(aiError('payload_too_large'))
+  if (payload && new TextEncoder().encode(payload).byteLength > maxBytes) throw new AiRequestError(aiError('payload_too_large'))
   return { secret, payload }
 }
 
 /** Llama a una función /api con el secreto del dispositivo. Lanza AiRequestError con mensaje claro. */
-export async function callAi<T>(path: '/api/health' | '/api/plan', body?: unknown): Promise<T> {
-  const { secret, payload } = prepare(body)
+export async function callAi<T>(path: '/api/health' | '/api/plan' | '/api/food-photo', body?: unknown): Promise<T> {
+  // La foto viaja en base64: su endpoint admite cuerpos mayores que el límite general
+  const { secret, payload } = prepare(body, path === '/api/food-photo' ? FOOD_PHOTO_MAX_BODY_BYTES : AI_MAX_BODY_BYTES)
 
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), CLIENT_TIMEOUT_MS)

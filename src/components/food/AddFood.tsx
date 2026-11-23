@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import type { Food, MealType } from '../../domain/types'
-import { searchFoods } from '../../domain/food'
+import { foodSubtitle, searchFoods } from '../../domain/food'
 import { formatDecimal } from '../../domain/number'
 import { db } from '../../db/db'
 import { listFavoriteFoods, listRecentFoods } from '../../db/food'
@@ -29,10 +29,13 @@ export function AddFood({ mealType, today }: { mealType: MealType; today: string
         <button type="button" onClick={() => open({ kind: 'scan', mealType })} className="h-12 rounded-xl bg-accent font-semibold text-bg active:scale-[0.98]">
           Escanear código
         </button>
+        <button type="button" onClick={() => open({ kind: 'photo', mealType })} className="h-12 rounded-xl bg-accent font-semibold text-bg active:scale-[0.98]">
+          Foto
+        </button>
         <button
           type="button"
           onClick={() => open({ kind: 'form', mealType, draft: { name: query.trim() } })}
-          className="h-12 rounded-xl border border-border font-semibold active:bg-white/5"
+          className="col-span-2 h-12 rounded-xl border border-border font-semibold active:bg-white/5"
         >
           Crear alimento
         </button>
@@ -66,7 +69,7 @@ function FoodList({ title, foods, onPick, empty }: { title: string; foods: Food[
                     {f.isFavorite && <span className="mr-1 text-amber-300">★</span>}
                     {f.name}
                   </span>
-                  <span className="block truncate text-sm text-neutral-500">{f.brand ?? 'Sin marca'}</span>
+                  <span className="block truncate text-sm text-neutral-500">{foodSubtitle(f)}</span>
                 </span>
                 <span className="shrink-0 text-sm text-neutral-400 tabular-nums">{formatDecimal(Math.round(f.kcal))} kcal/100 g</span>
               </button>

@@ -12,6 +12,7 @@ import {
   listRecentFoods,
   logBodyweight,
   saveFood,
+  saveFoodPhotoEstimate,
   toggleFavorite,
   updateMealItemGrams,
 } from './food'
@@ -152,5 +153,43 @@ describe('mealItems.date (v5)', () => {
       },
     }, db)
     expect((await getDayMeals('2026-11-21', db)).totals.kcal).toBe(50)
+  })
+})
+
+describe('saveFoodPhotoEstimate', () => {
+  const draft = (over: Partial<import('../domain/foodPhoto').PhotoDraftItem> = {}) => ({
+    key: 'ia0',
+    name: 'Arroz blanco cocido',
+    grams: 150,
+    per100: { kcal: 130, proteinG: 3, carbsG: 28, fatG: 0.4 },
+    confidence: 'alta' as const,
+    note: '',
+    ...over,
+  })
+
+  it('crea alimentos ia-foto (por 100 g) y los mealItems; aparecen en recientes', async () => {
+    const db = fresh()
+    const items = await saveFoodPhotoEstimate('2026-11-23', 'lunch', [draft(), draft({ key: 'ia1', name: 'Pollo a la plancha', grams: 120, per100: { kcal: 183.3, proteinG: 30.83, carbsG: 0, fatG: 6.67 } })], T, db)
+    expect(items.map((i) => [i.foodName, i.grams])).toEqual([['Arroz blanco cocido', 150], ['Pollo a la plancha', 120]])
+    const foods = await db.foods.toArray()
+    expect(foods).toHaveLength(2)
+    expect(foods.find((f) => f.name === 'Pollo a la plancha')).toMatchObject({ source: 'ia-foto', kcal: 183, proteinG: 30.8, fatG: 6.7, servingG: 120 })
+    const day = await getDayMeals('2026-11-23', db)
+    expect(day.byType.lunch.items.map((i) => i.foodName)).toEqual(['Arroz blanco cocido', 'Pollo a la plancha'])
+    expect(day.byType.lunch.totals.kcal).toBeCloseTo(195 + 220, 0)
+    expect((await listRecentFoods('2026-11-23', 15, 30, db)).map((f) => f.name)).toContain('Pollo a la plancha')
+  })
+
+  it('reutiliza el alimento ia-foto con el mismo nombre (sin duplicar) y no toca los manuales', async () => {
+    const db = fresh()
+    const manual = await saveFood({ name: 'Arroz blanco cocido', kcal: 120, proteinG: 2, carbsG: 27, fatG: 0 }, T, {}, db)
+    await saveFoodPhotoEstimate('2026-11-22', 'dinner', [draft()], T, db)
+    await saveFoodPhotoEstimate('2026-11-23', 'lunch', [draft({ name: 'arroz BLANCO cocido', per100: { kcal: 140, proteinG: 3, carbsG: 30, fatG: 1 } })], T + 10, db)
+    const ia = (await db.foods.toArray()).filter((f) => f.source === 'ia-foto')
+    expect(ia).toHaveLength(1)
+    expect(ia[0]).toMatchObject({ kcal: 140 })
+    expect(await db.foods.get(manual.id)).toMatchObject({ kcal: 120, source: 'manual' })
+    // El histórico conserva su copia de valores
+    expect((await getDayMeals('2026-11-22', db)).byType.dinner.items[0]).toMatchObject({ kcal: 130 })
   })
 })

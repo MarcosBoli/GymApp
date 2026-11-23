@@ -127,7 +127,8 @@ export interface Food {
   /** Ración por defecto sugerida al añadirlo. */
   servingG?: number
   isFavorite?: boolean
-  source?: 'openfoodfacts' | 'manual'
+  /** 'ia-foto': creado desde una estimación por foto (valores por 100 g calculados; la foto no se guarda). */
+  source?: 'openfoodfacts' | 'manual' | 'ia-foto'
   createdAt?: Timestamp
 }
 
