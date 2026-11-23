@@ -16,7 +16,7 @@ export function BackupReminder() {
   return (
     <section role="alert" className="mx-4 rounded-2xl border border-amber-400/40 bg-amber-400/[0.06] p-4">
       <h2 className="font-semibold text-amber-200">{reminder.kind === 'never' ? 'Aún no tienes copia de seguridad' : `Último backup hace ${reminder.days} días`}</h2>
-      <p className="mt-1 text-sm text-zinc-300">
+      <p className="mt-1 text-sm text-neutral-300">
         Tus datos solo viven en este iPhone. Si borras la app o Safari limpia sus datos, se pierden. Guarda una copia en Archivos o iCloud.
       </p>
       <button

@@ -13,16 +13,16 @@ export default function BodyweightChart({ data }: { data: { date: string; weight
     <div className="h-52" role="img" aria-label="Peso corporal y tendencia">
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={points} margin={{ top: 8, right: 8, bottom: 0, left: -12 }}>
-          <CartesianGrid vertical={false} stroke="#27272a" />
-          <XAxis dataKey="t" type="number" scale="time" domain={['dataMin', 'dataMax']} tickFormatter={(t: number) => short.format(t)} tick={{ fill: '#a1a1aa', fontSize: 11 }} tickLine={false} axisLine={false} minTickGap={28} />
-          <YAxis domain={['dataMin - 0.5', 'dataMax + 0.5']} tick={{ fill: '#a1a1aa', fontSize: 11 }} tickLine={false} axisLine={false} width={44} tickFormatter={(v: number) => formatDecimal(Math.round(v * 10) / 10, 1)} allowDecimals />
+          <CartesianGrid vertical={false} stroke="#2c2222" />
+          <XAxis dataKey="t" type="number" scale="time" domain={['dataMin', 'dataMax']} tickFormatter={(t: number) => short.format(t)} tick={{ fill: '#a3a3a3', fontSize: 11 }} tickLine={false} axisLine={false} minTickGap={28} />
+          <YAxis domain={['dataMin - 0.5', 'dataMax + 0.5']} tick={{ fill: '#a3a3a3', fontSize: 11 }} tickLine={false} axisLine={false} width={44} tickFormatter={(v: number) => formatDecimal(Math.round(v * 10) / 10, 1)} allowDecimals />
           <Tooltip
-            cursor={{ stroke: '#52525b' }}
+            cursor={{ stroke: '#525252' }}
             content={({ active, payload }) => {
               const d = active ? (payload?.[0]?.payload as (typeof points)[number] | undefined) : undefined
               return d ? (
                 <div className="rounded-lg border border-border bg-bg px-3 py-2 text-sm shadow-xl">
-                  <div className="text-zinc-400 first-letter:uppercase">{long.format(d.t)}</div>
+                  <div className="text-neutral-400 first-letter:uppercase">{long.format(d.t)}</div>
                   {d.weightKg !== undefined && <div className="tabular-nums">Peso {formatDecimal(d.weightKg, 1)} kg</div>}
                   <div className="font-semibold tabular-nums">Tendencia {formatDecimal(d.trendKg, 2)} kg</div>
                 </div>

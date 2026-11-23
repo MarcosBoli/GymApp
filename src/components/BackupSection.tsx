@@ -44,17 +44,17 @@ export function BackupSection() {
   return (
     <section className="mx-4 rounded-2xl border border-border bg-surface p-4">
       <h2 className="text-lg font-semibold">Copia de seguridad</h2>
-      <p className="mt-1 text-sm text-zinc-400">
+      <p className="mt-1 text-sm text-neutral-400">
         Tus datos solo están en este dispositivo. Exporta una copia de vez en cuando.
       </p>
 
       <div className="mt-4 flex items-baseline justify-between gap-2 text-sm">
-        <span className="text-zinc-400">Último backup</span>
+        <span className="text-neutral-400">Último backup</span>
         {lastStatus && (
-          <span className={lastStatus.stale ? 'font-medium text-amber-400' : 'font-medium text-zinc-100'}>
+          <span className={lastStatus.stale ? 'font-medium text-amber-400' : 'font-medium text-neutral-100'}>
             {lastStatus.label}
             {last.at !== undefined && (
-              <span className="ml-1 font-normal text-zinc-500">· {dateFormat.format(last.at)}</span>
+              <span className="ml-1 font-normal text-neutral-500">· {dateFormat.format(last.at)}</span>
             )}
           </span>
         )}
@@ -73,7 +73,7 @@ export function BackupSection() {
           type="button"
           onClick={() => fileInput.current?.click()}
           disabled={busy}
-          className="rounded-xl border border-border px-4 py-3 font-semibold text-zinc-100 transition active:scale-[0.98] active:bg-white/5 disabled:opacity-50"
+          className="rounded-xl border border-border px-4 py-3 font-semibold text-neutral-100 transition active:scale-[0.98] active:bg-white/5 disabled:opacity-50"
         >
           Importar
         </button>
@@ -86,7 +86,7 @@ export function BackupSection() {
         />
       </div>
 
-      <p className="mt-3 text-xs text-zinc-500">Importar reemplaza todos los datos de este dispositivo.</p>
+      <p className="mt-3 text-xs text-neutral-500">Importar reemplaza todos los datos de este dispositivo.</p>
 
       {(status.kind === 'ok' || status.kind === 'error') && (
         <p

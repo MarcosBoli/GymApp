@@ -39,12 +39,31 @@ describe('strength-standards.json', () => {
 describe('rank-config.json', () => {
   const { tiers } = RANK_CONFIG
 
-  it('9 tiers de Hierro a Leyenda, empezando en 0 y con umbrales crecientes < 100', () => {
-    expect(tiers.map((t) => t.name)).toEqual(['Hierro', 'Bronce', 'Plata', 'Oro', 'Platino', 'Esmeralda', 'Diamante', 'Maestro', 'Leyenda'])
+  it('6 tiers de Novato a Titán, empezando en 0 y con umbrales crecientes < 100', () => {
+    expect(tiers.map((t) => t.id)).toEqual(['novato', 'aprendiz', 'atleta', 'veterano', 'elite', 'titan'])
+    expect(tiers.map((t) => t.name)).toEqual(['Novato', 'Aprendiz', 'Atleta', 'Veterano', 'Élite', 'Titán'])
     expect(tiers[0]!.minScore).toBe(0)
     for (let i = 1; i < tiers.length; i++) expect(tiers[i]!.minScore).toBeGreaterThan(tiers[i - 1]!.minScore)
     expect(tiers.at(-1)!.minScore).toBeLessThan(100)
     expect(new Set(tiers.map((t) => t.id)).size).toBe(tiers.length)
+  })
+
+  it('umbrales anclados a los niveles de strength-standards (con constancia óptima)', () => {
+    const [, novato, intermedio, avanzado] = [0, ...STRENGTH_STANDARDS.levelScores.slice(1, 4)]
+    const principiante = STRENGTH_STANDARDS.levelScores[0]
+    const { strength, consistency } = RANK_CONFIG.weights
+    const muscle = (s: number) => s * strength + 100 * consistency
+    const min = Object.fromEntries(tiers.map((t) => [t.id, t.minScore]))
+    expect(min.aprendiz).toBeCloseTo(muscle(principiante!))
+    expect(min.atleta).toBeCloseTo(muscle(novato!))
+    expect(min.veterano).toBeCloseTo(muscle(intermedio!))
+    expect(min.elite).toBeCloseTo(muscle((intermedio! + avanzado!) / 2))
+    expect(min.titan).toBeCloseTo(muscle(avanzado!))
+  })
+
+  it('un color hex distinto por tier (mapa corporal)', () => {
+    expect(tiers.every((t) => /^#[0-9a-f]{6}$/i.test(t.color))).toBe(true)
+    expect(new Set(tiers.map((t) => t.color.toLowerCase())).size).toBe(tiers.length)
   })
 
   it('pesos suman 1 y parámetros coherentes', () => {

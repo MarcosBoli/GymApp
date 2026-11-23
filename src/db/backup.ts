@@ -1,5 +1,6 @@
 import { createBackup, type Backup, type BackupTables } from '../domain/backup'
-import { db as defaultDb, fillMealItemDates, seedCatalog, type GymDB } from './db'
+import { SIX_TIER_SCHEMA_VERSION } from '../domain/rankMigration'
+import { db as defaultDb, fillMealItemDates, migrateRanksToSixTiers, seedCatalog, type GymDB } from './db'
 
 export const LAST_BACKUP_KEY = 'lastBackupAt'
 
@@ -35,6 +36,7 @@ export async function importAll(backup: Backup, db: GymDB = defaultDb): Promise<
     if ((await db.muscles.count()) === 0) await seedCatalog(tx)
     // Backups de versiones anteriores: completar campos derivados que ahora se indexan
     await fillMealItemDates(tx)
+    if (backup.schemaVersion < SIX_TIER_SCHEMA_VERSION) await migrateRanksToSixTiers(tx)
   })
 }
 

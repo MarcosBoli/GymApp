@@ -13,7 +13,7 @@ export default function ProfilePage() {
         <ProfileForm />
         <AiSettings />
         <BackupSection />
-        <p className="pb-2 text-center text-xs text-zinc-600">GymApp {__APP_VERSION__} · datos solo en este dispositivo</p>
+        <p className="pb-2 text-center text-xs text-neutral-600">GymApp {__APP_VERSION__} · datos solo en este dispositivo</p>
       </div>
     </>
   )

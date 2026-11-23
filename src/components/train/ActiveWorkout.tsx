@@ -73,7 +73,7 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
       <header className="sticky top-0 z-20 -mt-[env(safe-area-inset-top)] flex items-center gap-3 border-b border-border bg-bg/90 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-3 backdrop-blur-xl">
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-xl font-bold">{planned.day ? `${DAY_NAMES[planned.day.dayIndex]} · ${planned.day.name}` : (routine.name ?? 'Entreno libre')}</h1>
-          <p className="text-sm tabular-nums text-zinc-400">{formatClock(now - workout.startedAt)}</p>
+          <p className="text-sm tabular-nums text-neutral-400">{formatClock(now - workout.startedAt)}</p>
         </div>
         <button type="button" onClick={finish} className="h-11 rounded-xl bg-accent px-5 font-bold text-bg active:scale-[0.98]">
           Terminar
@@ -82,7 +82,7 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
 
       <div className="space-y-3 px-4 pt-4">
         {workout.exerciseIds.length === 0 && (
-          <p className="px-2 pt-6 pb-2 text-center text-zinc-400">
+          <p className="px-2 pt-6 pb-2 text-center text-neutral-400">
             Añade tu primer ejercicio. Cada serie se guarda al momento, así que puedes cerrar la app sin perder nada.
           </p>
         )}
@@ -114,7 +114,7 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
           + Añadir ejercicio
         </button>
 
-        <button type="button" onClick={discard} className="w-full py-4 text-sm text-zinc-500 active:text-red-300">
+        <button type="button" onClick={discard} className="w-full py-4 text-sm text-neutral-500 active:text-red-300">
           Descartar entreno
         </button>
         {/* hueco para la barra de descanso */}

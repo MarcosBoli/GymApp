@@ -30,9 +30,9 @@ export function StartWorkout() {
         </button>
 
         <section>
-          <h2 className="mb-2 text-sm font-semibold tracking-wide text-zinc-400 uppercase">Rutinas</h2>
+          <h2 className="mb-2 text-sm font-semibold tracking-wide text-neutral-400 uppercase">Rutinas</h2>
           {routines && routines.length === 0 && (
-            <p className="rounded-2xl border border-dashed border-border px-4 py-6 text-center text-sm text-zinc-500">
+            <p className="rounded-2xl border border-dashed border-border px-4 py-6 text-center text-sm text-neutral-500">
               Aún no tienes rutinas. Al terminar un entreno puedes guardarlo como rutina.
             </p>
           )}
@@ -42,11 +42,11 @@ export function StartWorkout() {
                 <div className="flex items-start gap-3">
                   <div className="min-w-0 flex-1">
                     <h3 className="truncate text-lg font-semibold">{routine.name}</h3>
-                    <p className="line-clamp-2 text-sm text-zinc-500">
+                    <p className="line-clamp-2 text-sm text-neutral-500">
                       {exercises.map((re) => catalog?.exerciseById.get(re.exerciseId)?.name ?? re.exerciseId).join(' · ')}
                     </p>
                   </div>
-                  <button type="button" onClick={() => remove(routine.id, routine.name)} aria-label={`Borrar ${routine.name}`} className="-mr-2 -mt-1 p-2 text-zinc-600 active:text-red-300">
+                  <button type="button" onClick={() => remove(routine.id, routine.name)} aria-label={`Borrar ${routine.name}`} className="-mr-2 -mt-1 p-2 text-neutral-600 active:text-red-300">
                     ✕
                   </button>
                 </div>
@@ -63,7 +63,7 @@ export function StartWorkout() {
         </section>
 
         {last?.workout?.summary && (
-          <Link to={`/entrenar/resumen/${last.workout.id}`} className="block py-2 text-center text-sm text-zinc-400 underline-offset-4 active:underline">
+          <Link to={`/entrenar/resumen/${last.workout.id}`} className="block py-2 text-center text-sm text-neutral-400 underline-offset-4 active:underline">
             Ver resumen del último entreno
           </Link>
         )}

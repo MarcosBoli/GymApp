@@ -3,7 +3,7 @@ import { parseChatMarkdown, type Inline } from '../../domain/chatMarkdown'
 
 const Line = ({ parts }: { parts: Inline[] }) => (
   <>
-    {parts.map((p, i) => (p.bold ? <strong key={i} className="font-semibold text-zinc-50">{p.text}</strong> : <Fragment key={i}>{p.text}</Fragment>))}
+    {parts.map((p, i) => (p.bold ? <strong key={i} className="font-semibold text-neutral-50">{p.text}</strong> : <Fragment key={i}>{p.text}</Fragment>))}
   </>
 )
 

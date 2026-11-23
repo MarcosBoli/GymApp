@@ -6,13 +6,14 @@
 @theme {
   --font-sans:
     -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif;
-  --color-bg: #0a0a0f;
-  --color-surface: #15151d;
-  --color-border: #262631;
-  --color-accent: #67e8f9;
-  --color-accent-2: #a78bfa;
+  /* Negro y rojo (a juego con las insignias y el icono). Acento validado: 5,5:1 sobre superficie
+     y texto oscuro legible encima (botones bg-accent text-bg). */
+  --color-bg: #0b0909;
+  --color-surface: #171212;
+  --color-border: #2c2222;
+  --color-accent: #ff4545;
   --spacing-tabbar: 4rem;
-  /* Datos (validados con dataviz/validate_palette sobre --color-surface, modo oscuro) */
+  /* Datos (validados con dataviz/validate_palette sobre --color-surface #171212, modo oscuro) */
   --color-protein: #3987e5;
   --color-carbs: #d95926;
   --color-fat: #199e70;
@@ -43,7 +44,7 @@
   }
 
   body {
-    @apply bg-bg text-zinc-100 antialiased;
+    @apply bg-bg text-neutral-100 antialiased;
     min-height: 100dvh;
     overscroll-behavior-y: none;
   }

@@ -46,11 +46,11 @@ export function ExerciseCard({ workoutId, exercise, sets, expanded, target, plan
       <div className="flex items-start gap-3">
         <button type="button" onClick={() => expand(exercise.id)} className="min-w-0 flex-1 text-left">
           <h2 className="truncate text-lg font-semibold">{exercise.name}</h2>
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-neutral-500">
             {workingCount} {workingCount === 1 ? 'serie' : 'series'}
             {target && <span> · objetivo {target}</span>}
           </p>
-          {notes && <p className="text-xs text-zinc-500">{notes}</p>}
+          {notes && <p className="text-xs text-neutral-500">{notes}</p>}
         </button>
         <button
           type="button"
@@ -60,7 +60,7 @@ export function ExerciseCard({ workoutId, exercise, sets, expanded, target, plan
         >
           Preguntar
         </button>
-        <button type="button" onClick={remove} aria-label={`Quitar ${exercise.name}`} className="-mr-2 -mt-1 p-2 text-zinc-500 active:text-red-300">
+        <button type="button" onClick={remove} aria-label={`Quitar ${exercise.name}`} className="-mr-2 -mt-1 p-2 text-neutral-500 active:text-red-300">
           ✕
         </button>
       </div>
@@ -69,14 +69,14 @@ export function ExerciseCard({ workoutId, exercise, sets, expanded, target, plan
         <ol className="mt-3 space-y-1.5">
           {sets.map((s, i) => (
             <li key={s.id} className="flex items-center gap-3 rounded-lg bg-white/[0.03] px-3 py-2 text-base tabular-nums">
-              <span className={`w-6 text-sm font-semibold ${s.isWarmup ? 'text-amber-300' : 'text-zinc-500'}`}>
+              <span className={`w-6 text-sm font-semibold ${s.isWarmup ? 'text-amber-300' : 'text-neutral-500'}`}>
                 {labels[i]}
               </span>
               <span className="flex-1 font-medium">
                 {formatDecimal(s.weightKg)} kg × {s.reps}
-                {s.rpe !== undefined && <span className="ml-2 text-sm text-zinc-500">RPE {formatDecimal(s.rpe)}</span>}
+                {s.rpe !== undefined && <span className="ml-2 text-sm text-neutral-500">RPE {formatDecimal(s.rpe)}</span>}
               </span>
-              <button type="button" onClick={() => deleteSet(s.id)} aria-label="Borrar serie" className="p-1 text-zinc-600 active:text-red-300">
+              <button type="button" onClick={() => deleteSet(s.id)} aria-label="Borrar serie" className="p-1 text-neutral-600 active:text-red-300">
                 ✕
               </button>
             </li>
@@ -87,8 +87,8 @@ export function ExerciseCard({ workoutId, exercise, sets, expanded, target, plan
       {expanded && last && (
         <>
           {last.sets.length > 0 && (
-            <p className="mt-3 text-sm text-zinc-500">
-              Última vez: <span className="text-zinc-300">{formatSetsLine(last.sets)}</span>
+            <p className="mt-3 text-sm text-neutral-500">
+              Última vez: <span className="text-neutral-300">{formatSetsLine(last.sets)}</span>
             </p>
           )}
           <SetInput

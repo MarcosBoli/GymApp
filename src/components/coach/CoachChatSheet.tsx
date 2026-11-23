@@ -114,7 +114,7 @@ function Chat({ exerciseId, onClose, keyboardOpen }: { exerciseId: string | null
           <h2 className="truncate text-lg font-semibold">{title}</h2>
         </div>
         {messages.length > 0 && (
-          <button type="button" onClick={clear} disabled={busy} className="px-2 py-1 text-sm text-zinc-400 disabled:opacity-40">
+          <button type="button" onClick={clear} disabled={busy} className="px-2 py-1 text-sm text-neutral-400 disabled:opacity-40">
             Borrar
           </button>
         )}
@@ -125,7 +125,7 @@ function Chat({ exerciseId, onClose, keyboardOpen }: { exerciseId: string | null
 
       <div className="mx-auto w-full max-w-lg flex-1 overflow-y-auto overscroll-contain px-4" aria-live="polite">
         {messages.length === 0 && !busy && (
-          <p className="mt-6 text-center text-sm text-zinc-400">
+          <p className="mt-6 text-center text-sm text-neutral-400">
             Pregunta por la técnica, errores comunes o alternativas. El coach conoce {exercise ? 'este ejercicio, ' : ''}tu rutina de la semana y tu nivel.
           </p>
         )}
@@ -135,17 +135,17 @@ function Chat({ exerciseId, onClose, keyboardOpen }: { exerciseId: string | null
               {m.role === 'user' ? (
                 <p className="max-w-[85%] rounded-2xl rounded-br-md bg-accent/90 px-3.5 py-2 whitespace-pre-wrap text-bg">{m.content}</p>
               ) : (
-                <div className="max-w-[95%] rounded-2xl rounded-bl-md border border-border bg-surface px-3.5 py-2.5 text-zinc-200">
+                <div className="max-w-[95%] rounded-2xl rounded-bl-md border border-border bg-surface px-3.5 py-2.5 text-neutral-200">
                   <ChatMarkdown text={m.content} />
-                  {m.truncated && <p className="mt-1 text-xs text-zinc-500">Respuesta cortada</p>}
+                  {m.truncated && <p className="mt-1 text-xs text-neutral-500">Respuesta cortada</p>}
                 </div>
               )}
             </li>
           ))}
           {busy && (
             <li>
-              <div className="max-w-[95%] rounded-2xl rounded-bl-md border border-border bg-surface px-3.5 py-2.5 text-zinc-200">
-                {streaming ? <ChatMarkdown text={streaming} /> : <span className="text-zinc-500">Pensando…</span>}
+              <div className="max-w-[95%] rounded-2xl rounded-bl-md border border-border bg-surface px-3.5 py-2.5 text-neutral-200">
+                {streaming ? <ChatMarkdown text={streaming} /> : <span className="text-neutral-500">Pensando…</span>}
               </div>
             </li>
           )}

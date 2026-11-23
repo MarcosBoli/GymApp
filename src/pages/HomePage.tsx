@@ -76,7 +76,7 @@ export default function HomePage() {
                       <span className="text-sm font-semibold tabular-nums">{fmt(consumed)}</span>
                     </Ring>
                     <span className="text-sm font-medium">{m.label}</span>
-                    <span className="text-xs text-zinc-500 tabular-nums">de {fmt(target)} g</span>
+                    <span className="text-xs text-neutral-500 tabular-nums">de {fmt(target)} g</span>
                   </div>
                 )
               })}
@@ -86,13 +86,13 @@ export default function HomePage() {
               <div className="flex items-baseline justify-between">
                 <h2 className="text-lg font-semibold">Balance semanal</h2>
                 {overview.week.completeLoggedDays > 0 && (
-                  <span className="text-sm text-zinc-300 tabular-nums">
+                  <span className="text-sm text-neutral-300 tabular-nums">
                     {signed(overview.week.totalBalance)} kcal · ≈ {overview.week.estimatedKgChange > 0 ? '+' : '−'}
                     {formatDecimal(Math.abs(Math.round(overview.week.estimatedKgChange * 100) / 100))} kg
                   </span>
                 )}
               </div>
-              <p className="mb-2 text-xs text-zinc-500">Ingesta − gasto de cada día completo. Hoy, en curso, no cuenta.</p>
+              <p className="mb-2 text-xs text-neutral-500">Ingesta − gasto de cada día completo. Hoy, en curso, no cuenta.</p>
               <Suspense fallback={<div className="h-40" />}>
                 <WeeklyBalanceChart week={overview.week} tdee={overview.tdee} />
               </Suspense>
@@ -115,16 +115,16 @@ function CaloriesCard({ consumed, target, tdee, adaptive }: { consumed: number; 
   const p = progressOf(consumed, target)
   return (
     <section className="flex items-center gap-4 rounded-2xl border border-border bg-surface p-4" aria-label="Calorías de hoy">
-      <Ring fraction={p.fraction} color={p.over > 0 ? DATA_COLORS.surplus : '#67e8f9'} size={112} stroke={11}>
+      <Ring fraction={p.fraction} color={p.over > 0 ? DATA_COLORS.overTarget : DATA_COLORS.trend} size={112} stroke={11}>
         <span>
           <span className="block text-2xl font-bold tabular-nums">{fmt(consumed)}</span>
-          <span className="block text-xs text-zinc-400">de {fmt(target)}</span>
+          <span className="block text-xs text-neutral-400">de {fmt(target)}</span>
         </span>
       </Ring>
       <div className="min-w-0 flex-1">
-        <div className="text-sm text-zinc-400">kcal hoy</div>
+        <div className="text-sm text-neutral-400">kcal hoy</div>
         <div className="text-xl font-semibold tabular-nums">{p.over > 0 ? `Te has pasado ${fmt(p.over)}` : `Te quedan ${fmt(p.remaining)}`}</div>
-        <div className="mt-1 text-xs text-zinc-500">
+        <div className="mt-1 text-xs text-neutral-500">
           Gasto {fmt(tdee)} kcal · {adaptiveStatusText(adaptive)}
         </div>
       </div>

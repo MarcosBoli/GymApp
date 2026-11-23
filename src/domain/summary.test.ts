@@ -104,15 +104,16 @@ describe('buildWorkoutSummary', () => {
   })
 
   it('ganar la promo se refleja como ascenso', () => {
-    const promo: PromotionState = { status: 'promo', tierIndex: 2, targetTierIndex: 3, wins: 1, losses: 0 }
-    // pecho fuerte de sobra para el tier 3 (Oro: 36-48)
+    // Antes: score 52 (Atleta, tier 2) con la promo abierta desde Aprendiz (tier 1) hacia Veterano (tier 3)
+    const promo: PromotionState = { status: 'promo', tierIndex: 1, targetTierIndex: 3, wins: 1, losses: 0 }
+    // Hoy: ratio 1 (intermedio) → fuerza 50, constancia 100 → 60 = Veterano
     const today = Array.from({ length: 10 }, () => set('w2', 'bench', 80, 1, START + 60_000))
     const { summary, rankStates } = buildWorkoutSummary(input({ sets: [...oldSession, ...today], rankStates: { chest: promo } }), STD)
     const after = summary.diffs.find((d) => d.id === 'chest')!
     expect(summary.promotions.find((p) => p.id === 'chest')?.kind).toBe('promoted')
     expect(rankStates.chest).toEqual({ status: 'stable', tierIndex: 3 })
     expect(after.change).toBe('promoted')
-    expect(after.before).toMatchObject({ tierIndex: 2, lp: 100 })
+    expect(after.before).toMatchObject({ tierIndex: 1, lp: 100 })
   })
 
   it('sin sexo o peso: sin rangos pero con estadísticas y récords', () => {

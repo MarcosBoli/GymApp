@@ -88,7 +88,7 @@ describe('buildCoachContext', () => {
 
   it('por músculo: rango, LP, tendencia, series y días desde el último', () => {
     const chest = ctx.muscles.find((m) => m.id === 'chest')!
-    expect(chest.rank).toMatch(/^(Hierro|Bronce|Plata|Oro|Platino|Esmeralda|Diamante|Maestro|Leyenda)/)
+    expect(chest.rank).toMatch(/^(Novato|Aprendiz|Atleta|Veterano|Élite|Titán) (III|II|I)$/)
     expect(chest.e1rmTrend4wPct).toBeCloseTo(5.9, 1) // 85×5 → 90×5
     expect(chest.weeklySets).toBe(1.8) // 7 series / 4
     expect(chest.daysSinceLast).toBe(1)

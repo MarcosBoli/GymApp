@@ -18,6 +18,7 @@ import type {
   Workout,
   WorkoutSet,
 } from '../domain/types'
+import { remapSummaryRanks } from '../domain/rankMigration'
 import { MUSCLES } from '../data/muscles'
 import { buildExerciseCatalog } from '../data/exercises'
 
@@ -61,6 +62,21 @@ export async function fillMealItemDates(tx: Transaction): Promise<void> {
     .modify((i: MealItem) => {
       const date = dates.get(i.mealId)
       if (date) i.date = date
+    })
+}
+
+/**
+ * Rangos a la escalera de 6 tiers (migración v8 y backups anteriores): los resúmenes guardados
+ * se recalculan por score y las promos en curso (tiers antiguos) se descartan; cada músculo se
+ * recoloca directamente en su rango en el siguiente entreno.
+ */
+export async function migrateRanksToSixTiers(tx: Transaction): Promise<void> {
+  await tx.table('rankStates').clear()
+  await tx
+    .table('workouts')
+    .filter((w: Workout) => w.summary !== undefined)
+    .modify((w: Workout) => {
+      w.summary = remapSummaryRanks(w.summary!)
     })
 }
 
@@ -122,6 +138,9 @@ export function createDb(name = DB_NAME): GymDB {
   db.version(7).stores({
     chatMessages: 'id, [threadKey+createdAt]',
   })
+
+  // v8: escalera de rangos definitiva (6 tiers × 3 divisiones). Sin cambios de índices.
+  db.version(8).stores({}).upgrade(migrateRanksToSixTiers)
 
   // BD nueva (primer arranque): Dexie dispara populate una única vez
   db.on('populate', seedCatalog)

@@ -17,7 +17,7 @@ export type WeekRating = (typeof WEEK_RATINGS)[number]
 export const MuscleContextSchema = z.object({
   id: z.string(),
   name: z.string(),
-  /** "Oro II", "Maestro"… o null si no tiene rango. */
+  /** "Atleta II", "Titán I"… o null si no tiene rango. */
   rank: z.string().nullable(),
   lp: z.number().nullable(),
   /** Cambio % del mejor e1RM (últimas 2 semanas frente a las 2 anteriores). */

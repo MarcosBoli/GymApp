@@ -46,7 +46,7 @@ function Body({ mealType, mealLabel, date, itemId, grams: initialGrams, food }: 
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <h3 className="text-xl font-semibold">{food.name}</h3>
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-neutral-500">
             {food.brand ?? 'Sin marca'} · {formatDecimal(Math.round(food.kcal))} kcal/100 g
           </p>
         </div>
@@ -55,14 +55,14 @@ function Body({ mealType, mealLabel, date, itemId, grams: initialGrams, food }: 
           onClick={() => toggleFavorite(food.id)}
           aria-pressed={food.isFavorite === true}
           aria-label={food.isFavorite ? 'Quitar de favoritos' : 'Añadir a favoritos'}
-          className={`text-3xl leading-none ${food.isFavorite ? 'text-amber-300' : 'text-zinc-600'}`}
+          className={`text-3xl leading-none ${food.isFavorite ? 'text-amber-300' : 'text-neutral-600'}`}
         >
           ★
         </button>
       </div>
 
       <label className="block">
-        <span className="mb-1 block text-sm text-zinc-400">Cantidad (g)</span>
+        <span className="mb-1 block text-sm text-neutral-400">Cantidad (g)</span>
         <input
           type="text"
           inputMode="decimal"
@@ -82,7 +82,7 @@ function Body({ mealType, mealLabel, date, itemId, grams: initialGrams, food }: 
 
       <div className="rounded-2xl border border-border bg-surface p-4">
         <div className="text-3xl font-bold tabular-nums">
-          {formatDecimal(Math.round(n.kcal))} <span className="text-base font-normal text-zinc-400">kcal</span>
+          {formatDecimal(Math.round(n.kcal))} <span className="text-base font-normal text-neutral-400">kcal</span>
         </div>
         <MacroLegend proteinG={n.proteinG} carbsG={n.carbsG} fatG={n.fatG} />
       </div>
@@ -93,7 +93,7 @@ function Body({ mealType, mealLabel, date, itemId, grams: initialGrams, food }: 
         {itemId ? 'Guardar' : `Añadir a ${mealLabel}`}
       </button>
       <div className="flex justify-between text-sm">
-        <button type="button" onClick={() => open({ kind: 'form', mealType, foodId: food.id, draft: { ...food, name: food.name } })} className="py-2 text-zinc-400 active:text-zinc-200">
+        <button type="button" onClick={() => open({ kind: 'form', mealType, foodId: food.id, draft: { ...food, name: food.name } })} className="py-2 text-neutral-400 active:text-neutral-200">
           Editar alimento
         </button>
         {itemId && (

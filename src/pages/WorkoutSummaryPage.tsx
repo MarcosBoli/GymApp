@@ -31,7 +31,7 @@ export default function WorkoutSummaryPage() {
   const w = workout.w
   if (!w?.summary) {
     return (
-      <div className="px-4 pt-10 text-center text-zinc-400">
+      <div className="px-4 pt-10 text-center text-neutral-400">
         Resumen no disponible. <Link to="/entrenar" className="text-accent">Volver</Link>
       </div>
     )
@@ -54,7 +54,7 @@ export default function WorkoutSummaryPage() {
         <motion.p initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="text-sm font-semibold tracking-[0.2em] text-accent uppercase">
           Resumen de partida
         </motion.p>
-        <p className="text-sm text-zinc-500 first-letter:uppercase">{dateFormat.format(w.startedAt)}</p>
+        <p className="text-sm text-neutral-500 first-letter:uppercase">{dateFormat.format(w.startedAt)}</p>
       </header>
 
       <div className="grid grid-cols-3 gap-2">
@@ -80,7 +80,7 @@ export default function WorkoutSummaryPage() {
           className="rounded-2xl border border-border bg-surface p-4"
           style={{ boxShadow: `0 0 40px -12px ${tierColor(globalDiff.after)}` }}
         >
-          <div className="text-xs font-semibold tracking-wide text-zinc-400 uppercase">Rango global</div>
+          <div className="text-xs font-semibold tracking-wide text-neutral-400 uppercase">Rango global</div>
           <div className="mt-2 flex items-center justify-between">
             <TierBadge rank={globalDiff.after} size="lg" showLp />
             {globalDiff.change !== 'new' && <LpDelta value={globalDiff.lpDelta} className="text-xl" />}
@@ -91,7 +91,7 @@ export default function WorkoutSummaryPage() {
 
       {muscleDiffs.length > 0 && (
         <section>
-          <h2 className="mb-2 text-sm font-semibold tracking-wide text-zinc-400 uppercase">LP por músculo</h2>
+          <h2 className="mb-2 text-sm font-semibold tracking-wide text-neutral-400 uppercase">LP por músculo</h2>
           <ul className="space-y-2">
             {muscleDiffs.map((d, i) => (
               <motion.li
@@ -121,7 +121,7 @@ export default function WorkoutSummaryPage() {
 
       {s.records.length > 0 && (
         <section>
-          <h2 className="mb-2 text-sm font-semibold tracking-wide text-zinc-400 uppercase">Récords personales</h2>
+          <h2 className="mb-2 text-sm font-semibold tracking-wide text-neutral-400 uppercase">Récords personales</h2>
           <ul className="space-y-2">
             {s.records.map((r, i) => (
               <motion.li
@@ -134,7 +134,7 @@ export default function WorkoutSummaryPage() {
                 <span className="text-2xl" aria-hidden>🏆</span>
                 <div className="min-w-0 flex-1">
                   <div className="truncate font-medium">{catalog.exerciseById.get(r.exerciseId)?.name ?? r.exerciseId}</div>
-                  <div className="text-sm text-zinc-400">
+                  <div className="text-sm text-neutral-400">
                     {formatDecimal(r.weightKg)} kg × {r.reps} · e1RM {formatDecimal(r.e1rm, 1)} kg
                     <span className="text-emerald-300"> (+{formatDecimal(r.e1rm - r.previousBest, 1)})</span>
                   </div>
@@ -163,7 +163,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-border bg-surface px-3 py-3 text-center">
       <div className="text-lg font-bold tabular-nums">{value}</div>
-      <div className="text-xs text-zinc-500">{label}</div>
+      <div className="text-xs text-neutral-500">{label}</div>
     </div>
   )
 }

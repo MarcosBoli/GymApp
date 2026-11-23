@@ -12,9 +12,9 @@ export function TierBadge({ rank, size = 'md', showLp = false }: { rank: Rank; s
   return (
     <span className="inline-flex items-center gap-2">
       <Emblem tierIndex={rank.tierIndex} size={px} />
-      <span className={`${text} font-semibold text-zinc-100`}>
+      <span className={`${text} font-semibold text-neutral-100`}>
         {formatRank(rank)}
-        {showLp && <span className="ml-1.5 font-normal text-zinc-400">{rank.lp} LP</span>}
+        {showLp && <span className="ml-1.5 font-normal text-neutral-400">{rank.lp} LP</span>}
       </span>
     </span>
   )

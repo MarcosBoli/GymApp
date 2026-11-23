@@ -45,14 +45,14 @@ export function SetInput({ setNumber, suggestion, bodyweight, onSave }: Props) {
           onClick={() => setWarmup(!warmup)}
           aria-pressed={warmup}
           className={`h-11 flex-1 rounded-xl border text-sm font-medium transition ${
-            warmup ? 'border-amber-400/60 bg-amber-400/10 text-amber-300' : 'border-border text-zinc-400'
+            warmup ? 'border-amber-400/60 bg-amber-400/10 text-amber-300' : 'border-border text-neutral-400'
           }`}
         >
           Calentamiento
         </button>
-        <label className="flex h-11 flex-1 items-center justify-between rounded-xl border border-border px-3 text-sm text-zinc-400">
+        <label className="flex h-11 flex-1 items-center justify-between rounded-xl border border-border px-3 text-sm text-neutral-400">
           RPE
-          <select value={rpe} onChange={(e) => setRpe(e.target.value)} className="bg-transparent text-right text-zinc-100 outline-none">
+          <select value={rpe} onChange={(e) => setRpe(e.target.value)} className="bg-transparent text-right text-neutral-100 outline-none">
             {RPE_OPTIONS.map((o) => (
               <option key={o} value={o}>
                 {o || '—'}
@@ -84,7 +84,7 @@ function Stepper(props: {
 }) {
   return (
     <div className="rounded-2xl border border-border bg-bg/60 p-2">
-      <div className="text-center text-xs text-zinc-500">{props.label}</div>
+      <div className="text-center text-xs text-neutral-500">{props.label}</div>
       <input
         type="text"
         inputMode={props.inputMode}
@@ -113,7 +113,7 @@ function StepButton({ onClick, label, children }: { onClick: () => void; label: 
       type="button"
       onClick={onClick}
       aria-label={label}
-      className="h-11 rounded-xl bg-white/5 text-2xl text-zinc-300 active:bg-white/10"
+      className="h-11 rounded-xl bg-white/5 text-2xl text-neutral-300 active:bg-white/10"
     >
       {children}
     </button>

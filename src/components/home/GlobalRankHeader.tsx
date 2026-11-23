@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import type { RankOverview } from '../../domain/progress'
+import { emblemState, type RankOverview } from '../../domain/progress'
 import { formatRank } from '../../domain/ranking'
 import { RANK_CONFIG } from '../../data/ranking'
 import { Emblem } from '../rank/Emblem'
@@ -13,9 +13,9 @@ export function GlobalRankHeader({ global }: { global: RankOverview['global'] })
       <section className="flex items-center gap-4 rounded-2xl border border-border bg-surface p-4">
         <Emblem tierIndex={null} size={72} />
         <div>
-          <div className="text-xs font-semibold tracking-wide text-zinc-400 uppercase">Rango global</div>
+          <div className="text-xs font-semibold tracking-wide text-neutral-400 uppercase">Rango global</div>
           <div className="text-lg font-semibold">Sin clasificar</div>
-          <p className="text-sm text-zinc-500">Termina un entreno (con sexo y peso en Perfil) para recibir tu rango.</p>
+          <p className="text-sm text-neutral-500">Termina un entreno (con sexo y peso en Perfil) para recibir tu rango.</p>
         </div>
       </section>
     )
@@ -30,18 +30,18 @@ export function GlobalRankHeader({ global }: { global: RankOverview['global'] })
       style={{ boxShadow: `0 0 48px -16px ${color}` }}
     >
       <Ring fraction={r.lp / 100} color={color} size={112} stroke={6}>
-        <Emblem tierIndex={r.tierIndex} division={r.division} size={84} />
+        <Emblem tierIndex={r.tierIndex} division={r.division} state={emblemState(global)} size={84} />
       </Ring>
       <div className="min-w-0">
-        <div className="text-xs font-semibold tracking-wide text-zinc-400 uppercase">Rango global</div>
+        <div className="text-xs font-semibold tracking-wide text-neutral-400 uppercase">Rango global</div>
         <div className="text-2xl font-bold">{formatRank(r)}</div>
-        <div className="text-sm text-zinc-300 tabular-nums">{r.lp} LP</div>
+        <div className="text-sm text-neutral-300 tabular-nums">{r.lp} LP</div>
         {inPromo && global.promo?.status === 'promo' && (
           <span className="mt-1 inline-block rounded-full bg-accent/15 px-2.5 py-0.5 text-xs font-semibold text-accent">
             Serie de promoción {global.promo.wins}-{global.promo.losses}
           </span>
         )}
-        <div className="mt-1 text-xs text-zinc-500">{global.trainedMuscles} músculos clasificados</div>
+        <div className="mt-1 text-xs text-neutral-500">{global.trainedMuscles} músculos clasificados</div>
       </div>
     </motion.section>
   )

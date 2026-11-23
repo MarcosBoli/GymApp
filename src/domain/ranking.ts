@@ -31,8 +31,7 @@ export interface TierConfig {
   name: string
   /** Score mínimo (incluido) para entrar en el tier. */
   minScore: number
-  /** true → divisiones IV-I; false → un solo tramo de LP (Maestro, Leyenda). */
-  divisions: boolean
+  /** Color del rango en el mapa corporal (hex). */
   color: string
 }
 
@@ -221,15 +220,15 @@ export function combineMuscleScore(
 
 // ─── 5. Score → tier, división y LP ────────────────────────────────────────
 
-export type Division = 'IV' | 'III' | 'II' | 'I'
-const DIVISIONS: readonly Division[] = ['IV', 'III', 'II', 'I']
+/** Cada tier tiene 3 divisiones: III (entrada) → II → I (la más alta). */
+export type Division = 'III' | 'II' | 'I'
+export const DIVISIONS: readonly Division[] = ['III', 'II', 'I']
 
 export interface Rank {
   tierIndex: number
   tierId: string
   tierName: string
-  /** null en tiers sin divisiones (Maestro, Leyenda). */
-  division: Division | null
+  division: Division
   /** 0-99 (100 solo en el tope del último tier o durante una promo). */
   lp: number
   score: number
@@ -259,11 +258,6 @@ export function rankFromScore(score: number, config: RankConfig = RANK_CONFIG): 
   const offset = s - min
   const maxLp = isTop ? 100 : 99
 
-  if (!tier.divisions) {
-    const lp = width > 0 ? Math.floor((offset / width) * 100 + EPS) : 100
-    return { tierIndex, tierId: tier.id, tierName: tier.name, division: null, lp: clamp(lp, 0, maxLp), score: s }
-  }
-
   const divWidth = width / DIVISIONS.length
   const divIndex = Math.min(DIVISIONS.length - 1, Math.floor(offset / divWidth + EPS))
   const lp = Math.floor(((offset - divIndex * divWidth) / divWidth) * 100 + EPS)
@@ -284,22 +278,22 @@ export function rankAtTierTop(tierIndex: number, score: number, lp: number, conf
     tierIndex,
     tierId: tier.id,
     tierName: tier.name,
-    division: tier.divisions ? 'I' : null,
+    division: 'I',
     lp,
     score: clamp(score, 0, 100),
   }
 }
 
-/** Posición absoluta en la escalera: cada división (o tier sin divisiones) = 100 LP. */
-export function ladderPoints(rank: Rank, config: RankConfig = RANK_CONFIG): number {
-  let points = 0
-  for (let i = 0; i < rank.tierIndex; i++) points += config.tiers[i]!.divisions ? DIVISIONS.length * 100 : 100
-  const divIndex = rank.division ? DIVISIONS.indexOf(rank.division) : 0
-  return points + divIndex * 100 + rank.lp
+/** Posición absoluta en la escalera: cada división = 100 LP. */
+export function ladderPoints(rank: Rank, _config: RankConfig = RANK_CONFIG): number {
+  return rank.tierIndex * DIVISIONS.length * 100 + DIVISIONS.indexOf(rank.division) * 100 + rank.lp
 }
 
+/** Pips encendidos de la insignia: III → 1, II → 2, I → 3. */
+export const divisionPips = (division: Division): number => DIVISIONS.indexOf(division) + 1
+
 export function formatRank(rank: Rank): string {
-  return rank.division ? `${rank.tierName} ${rank.division}` : rank.tierName
+  return `${rank.tierName} ${rank.division}`
 }
 
 // ─── 6. Rango global y eslabón débil ───────────────────────────────────────

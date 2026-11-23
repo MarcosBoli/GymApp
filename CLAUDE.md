@@ -1,6 +1,6 @@
 # GymApp
 
-PWA para iPhone (instalada desde Safari → "Añadir a pantalla de inicio") que sirve de **tracker de gym con rangos por músculo estilo LoL/Valorant** (Hierro → Bronce → … → Diamante → Maestro, etc., calculados a partir de tus marcas por grupo muscular), **registro de comidas y balance calórico** (ingesta vs. gasto). Es **100 % local y gratis**: sin backend, sin cuentas, sin APIs de pago. Todos los datos viven en IndexedDB en el propio dispositivo y la app funciona offline por completo.
+PWA para iPhone (instalada desde Safari → "Añadir a pantalla de inicio") que sirve de **tracker de gym con rangos por músculo estilo LoL/Valorant** (Novato → Aprendiz → Atleta → Veterano → Élite → Titán, calculados a partir de tus marcas por grupo muscular), **registro de comidas y balance calórico** (ingesta vs. gasto). Es **100 % local y gratis**: sin backend, sin cuentas, sin APIs de pago. Todos los datos viven en IndexedDB en el propio dispositivo y la app funciona offline por completo.
 
 ## Stack
 
@@ -29,7 +29,7 @@ src/
   router.tsx   Rutas (/, /entrenar, /entrenar/plan, /comida, /progreso, /perfil), cada página con `lazy` (chunk propio)
   main.tsx     Arranque: registro del SW, storage.persist(), render
   index.css    Tailwind + tema + utilidades safe-area (pt-safe, pb-safe, pl-safe, pr-safe)
-public/        Iconos PWA/iOS (generados desde public/logo.svg)
+public/        Iconos PWA/iOS (generados desde assets-src/logo.png)
 api/           Funciones serverless de Vercel (entradas finas: health, chat, plan)
 server/ai/     Lógica de las funciones: secreto, límites, validación, llamada a Claude, errores (+ tests)
 ```
@@ -39,7 +39,7 @@ server/ai/     Lógica de las funciones: secreto, límites, validación, llamada
 - **Lógica de negocio pura en `src/domain`**: funciones sin efectos (sin React, sin Dexie, sin `Date.now()` implícito: pasar fechas como parámetro), cada una con su test Vitest al lado (`foo.ts` + `foo.test.ts`).
 - **Sin lógica en componentes**: los componentes solo leen datos (`useLiveQuery`), llaman a funciones de `domain`/`db` y pintan. Nada de cálculos, reglas ni transformaciones no triviales en JSX.
 - **Mobile-first a 390 px de ancho** (iPhone 12–16). Contenido centrado con `max-w-lg`; no diseñar para escritorio.
-- **Modo oscuro por defecto** (`class="dark"` en `<html>`, `color-scheme: dark`).
+- **Modo oscuro por defecto** (`class="dark"` en `<html>`, `color-scheme: dark`). Tema negro y rojo (a juego con insignias e icono): fondos casi negros cálidos (`--color-bg` #0b0909, `--color-surface` #171212, `--color-border` #2c2222), grises `neutral-*` (no `zinc`) y acento rojo `--color-accent` #ff4545 (texto oscuro encima en botones). Colores semánticos aparte: rojo errores, ámbar avisos, verde hecho.
 - **iOS**:
   - Respetar safe areas con las utilidades `pt-safe`/`pb-safe`/`pl-safe`/`pr-safe` o `env(safe-area-inset-*)`; el status bar es `black-translucent`, así que el contenido va por debajo de él.
   - Inputs con `font-size ≥ 16px` (ya forzado en `index.css`) para que Safari no haga zoom.
@@ -59,7 +59,10 @@ server/ai/     Lógica de las funciones: secreto, límites, validación, llamada
   - e1RM de Epley (reps limitadas a `e1rm.maxReps`); calentamientos ignorados; `addBodyweight` → peso corporal + lastre (lastre negativo = asistencia).
   - Score de ejercicio = ratio e1RM/peso corporal interpolado contra 5 niveles (`levelScores`). Mancuernas: peso de UNA mancuerna. Sin estándar → no puntúa fuerza, sí constancia.
   - Score de músculo = 80 % fuerza (media ponderada por factor, ventana 42 d) + 20 % constancia (series efectivas 7 d, óptimo 10-20).
-  - Tiers con divisiones IV-I (3 puntos de score = 100 LP); Maestro y Leyenda sin divisiones.
+  - 6 tiers (Novato, Aprendiz, Atleta, Veterano, Élite, Titán), todos con 3 divisiones III → II → I; cada división = 100 LP (anchos de score no lineales: tiers altos más estrechos).
+  - `minScore` anclados a `strength-standards.json` suponiendo constancia óptima (score = 0,8 × fuerza + 20): Aprendiz = principiante (28), Atleta = novato (44), Veterano = intermedio (60), Élite = mitad intermedio-avanzado (70), Titán = avanzado (80). Un test vigila el anclaje.
+  - `color` de cada tier = color del músculo en el mapa corporal (definido a mano: las insignias son casi todas rojas). Paleta validada con la skill dataviz sobre la superficie oscura (todos los pares ΔE ≥ 8 con protanopia/deuteranopia).
+  - Dexie v8 (`migrateRanksToSixTiers`, también al importar backups < v8): resúmenes recalculados por `score` (`remapSummaryRanks`) y `rankStates` vaciado (las promos antiguas apuntaban a tiers que ya no existen).
   - Promos: `advancePromotion` por sesión que entrena el músculo; el estado se persiste fuera del dominio. Usar `displayedRank` para mostrar.
   - `computeRankings` es el punto de entrada; `rankSnapshot` + `diffRanks` para el resumen post-entreno.
 - **Entreno** (`src/db/workouts.ts`, `src/domain/workout.ts`, `src/domain/summary.ts`):
@@ -71,13 +74,13 @@ server/ai/     Lógica de las funciones: secreto, límites, validación, llamada
   - Escáner: `@zxing/browser` (cámara trasera, EAN/UPC), cargado con `lazy`. `resolveBarcode`: local → Open Food Facts (se guarda en `foods` si viene completo) → alta manual con el código precargado.
   - Recientes se derivan de las comidas; favoritos con `food.isFavorite`. `mealItems` guardan copia de los valores por 100 g y `createdAt` para el orden.
   - TDEE: Mifflin-St Jeor × factor de actividad; adaptativo con 14 días = ingesta media (solo días con registros, mín. 10) − Δ peso tendencial × 7700 / 14. Tendencia = EMA diaria α 0,1 con huecos interpolados. Objetivo: −20 % / 0 / +10 %; proteína 2 g/kg, grasa 25 %.
-  - Colores de datos validados con la skill dataviz en `src/components/dataColors.ts` (hex: no usar `var()` en atributos SVG).
+  - Colores de datos validados con la skill dataviz en `src/components/dataColors.ts` (hex: no usar `var()` en atributos SVG). Series únicas (tendencia, e1RM, historial de rangos) y el mapa de calor (rampa roja `VOLUME_RAMP`) en el rojo del tema; macros y déficit/superávit conservan tonos distintos.
 - **Carga diferida**: cada página va en su propio chunk (`lazy` en `router.tsx`); lo pesado y secundario dentro de una página (Recharts, zxing) con `React.lazy` + `Suspense`. El SW precachea todos los chunks (offline intacto) y `vite:preloadError` recarga si falta un chunk de una versión anterior.
-- **Inicio y Progreso** (`src/domain/progress.ts`, `src/domain/emblem.ts`, `src/data/bodyMap.ts`):
+- **Inicio y Progreso** (`src/domain/progress.ts`, `src/components/rank/Emblem.tsx`, `src/data/bodyMap.ts`):
   - `buildRankOverview` da los rangos a mostrar (respetando promos), eslabón débil e inactivos; `getRankingInputs` (db) aporta los datos.
   - Silueta: polígonos propios de la mitad izquierda en `bodyMap.ts`, reflejados con `mirrorPoints`; cada músculo es un `<g role="button">` con `aria-label` y hay una lista equivalente debajo (el rango nunca va solo en el color).
-  - Emblemas procedurales (`EMBLEM_SPECS`): cada tier añade capas; el test exige complejidad estrictamente creciente. No copiar emblemas de ningún juego.
-  - Progreso: peso bruto + tendencia, mapa de calor de series/semana (rampa azul secuencial en `VOLUME_RAMP`) e historial de rangos desde `workout.summary`.
+  - Insignias: imágenes propias en `src/assets/ranks/rank-N-<id>.png` (512 px, originales); la app usa las WebP de 256 px de `src/assets/ranks/web/` (`npm run optimize-rank-images` tras cambiar un PNG), mapeadas por id de tier en `rankImages.ts`. Encima, por código: pips de división (III → 1 … I → 3) y estados de `emblemState` (bloqueada = sin rango, inactiva, promo con brillo del color del tier).
+  - Progreso: peso bruto + tendencia, mapa de calor de series/semana (rampa roja secuencial en `VOLUME_RAMP`) e historial de rangos desde `workout.summary`.
 - **Rendimiento** (medido con 1 año de datos y CPU ×4):
   - Nunca leer tablas enteras que crecen con el tiempo (`sets`, `mealItems`, `workouts`) si basta una ventana: usar los índices `sets.performedAt`, `[exerciseId+performedAt]` y `mealItems.date`. Evitar `anyOf` con cientos de claves (un viaje a IndexedDB por clave).
   - Gráficas Recharts sin animación (`isAnimationActive={false}`) y ≤ ~120 puntos (`bucketWeightTrend` agrega por semanas).
@@ -118,7 +121,8 @@ npm run preview             # servir dist/ (el service worker solo funciona en b
 npm test                    # tests Vitest (una pasada)
 npm run test:watch          # tests en modo watch
 npm run typecheck           # solo comprobación de tipos
-npm run generate-pwa-assets # regenerar iconos desde public/logo.svg
+npm run generate-pwa-assets # regenerar iconos desde assets-src/logo.png
+npm run optimize-rank-images # insignias de rango PNG → WebP 256 px (src/assets/ranks/web)
 npm run fake-data           # 1 año de datos falsos → fake-data/*.json (importar en Perfil)
 npx vercel dev              # app + funciones /api en local (lee .env.local; ver .env.example)
 ```

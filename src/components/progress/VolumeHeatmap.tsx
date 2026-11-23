@@ -26,7 +26,7 @@ export function VolumeHeatmap({ weekStarts, rows }: { weekStarts: string[]; rows
                 <span className="sr-only">Músculo</span>
               </th>
               {weekStarts.map((w, i) => (
-                <th key={w} scope="col" className="pb-1 text-[10px] font-normal text-zinc-500" aria-label={`Semana del ${weekLabel.format(fromDateKey(w))}`}>
+                <th key={w} scope="col" className="pb-1 text-[10px] font-normal text-neutral-500" aria-label={`Semana del ${weekLabel.format(fromDateKey(w))}`}>
                   {i === weekStarts.length - 1 ? 'Esta' : shortWeek(w)}
                 </th>
               ))}
@@ -35,7 +35,7 @@ export function VolumeHeatmap({ weekStarts, rows }: { weekStarts: string[]; rows
           <tbody>
             {rows.map((r) => (
               <tr key={r.id}>
-                <th scope="row" title={r.name} className="truncate pr-1 text-left font-normal text-zinc-300">
+                <th scope="row" title={r.name} className="truncate pr-1 text-left font-normal text-neutral-300">
                   {r.name}
                 </th>
                 {r.values.map((v, i) => {
@@ -56,15 +56,15 @@ export function VolumeHeatmap({ weekStarts, rows }: { weekStarts: string[]; rows
           </tbody>
         </table>
       </div>
-      <div className="mt-2 flex items-center justify-center gap-1 text-[11px] text-zinc-400" aria-label="Escala">
+      <div className="mt-2 flex items-center justify-center gap-1 text-[11px] text-neutral-400" aria-label="Escala">
         {VOLUME_BINS.map((b, i) => (
           <span key={b.label} className="flex flex-col items-center gap-0.5">
             <span className="h-3 w-8 rounded-sm" style={{ background: VOLUME_RAMP[i], boxShadow: i === 0 ? 'inset 0 0 0 1px #3f3f46' : undefined }} />
-            <span className={i === 3 || i === 4 ? 'font-semibold text-zinc-200' : ''}>{b.label}</span>
+            <span className={i === 3 || i === 4 ? 'font-semibold text-neutral-200' : ''}>{b.label}</span>
           </span>
         ))}
       </div>
-      <p className="mt-1 text-center text-[11px] text-zinc-500">Series/semana · óptimo 10-20 (secundarios cuentan 0,5)</p>
+      <p className="mt-1 text-center text-[11px] text-neutral-500">Series/semana · óptimo 10-20 (secundarios cuentan 0,5)</p>
     </div>
   )
 }

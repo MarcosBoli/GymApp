@@ -21,16 +21,16 @@ export default function RankHistoryChart({ data }: { data: RankHistoryPoint[] })
     <div className="h-52" role="img" aria-label="Historial de rango">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-          <CartesianGrid vertical={false} stroke="#27272a" />
-          <XAxis dataKey="at" type="number" scale="time" domain={['dataMin', 'dataMax']} tickFormatter={(t: number) => short.format(t)} tick={{ fill: '#a1a1aa', fontSize: 11 }} tickLine={false} axisLine={false} minTickGap={28} />
-          <YAxis domain={[lo, hi]} ticks={ticks} tickFormatter={(v: number) => name.get(v) ?? ''} tick={{ fill: '#a1a1aa', fontSize: 11 }} tickLine={false} axisLine={false} width={68} />
+          <CartesianGrid vertical={false} stroke="#2c2222" />
+          <XAxis dataKey="at" type="number" scale="time" domain={['dataMin', 'dataMax']} tickFormatter={(t: number) => short.format(t)} tick={{ fill: '#a3a3a3', fontSize: 11 }} tickLine={false} axisLine={false} minTickGap={28} />
+          <YAxis domain={[lo, hi]} ticks={ticks} tickFormatter={(v: number) => name.get(v) ?? ''} tick={{ fill: '#a3a3a3', fontSize: 11 }} tickLine={false} axisLine={false} width={68} />
           <Tooltip
-            cursor={{ stroke: '#52525b' }}
+            cursor={{ stroke: '#525252' }}
             content={({ active, payload }) => {
               const d = active ? (payload?.[0]?.payload as RankHistoryPoint | undefined) : undefined
               return d ? (
                 <div className="rounded-lg border border-border bg-bg px-3 py-2 text-sm shadow-xl">
-                  <div className="text-zinc-400 first-letter:uppercase">{long.format(d.at)}</div>
+                  <div className="text-neutral-400 first-letter:uppercase">{long.format(d.at)}</div>
                   <div className="font-semibold">
                     {formatRank(d.rank)} · {d.rank.lp} LP
                   </div>

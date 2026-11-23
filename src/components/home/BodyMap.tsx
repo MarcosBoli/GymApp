@@ -5,7 +5,7 @@ import { formatRank } from '../../domain/ranking'
 import { RANK_CONFIG } from '../../data/ranking'
 import { useHomeUi } from '../../store/homeUi'
 
-const UNRANKED = '#2f2f39'
+const UNRANKED = '#2e2828'
 const SWIPE_PX = 50
 
 const fill = (m?: MuscleStatus) => (m?.displayed ? (RANK_CONFIG.tiers[m.displayed.tierIndex]?.color ?? UNRANKED) : UNRANKED)
@@ -27,7 +27,7 @@ export function BodyMap({ muscles }: { muscles: MuscleStatus[] }) {
         <h2 className="text-lg font-semibold">Tu cuerpo</h2>
         <div className="flex rounded-lg bg-white/5 p-0.5 text-sm" role="group" aria-label="Vista">
           {(['front', 'back'] as BodyView[]).map((v) => (
-            <button key={v} type="button" aria-pressed={view === v} onClick={() => setView(v)} className={`rounded-md px-3 py-1.5 font-medium ${view === v ? 'bg-white/10 text-zinc-100' : 'text-zinc-400'}`}>
+            <button key={v} type="button" aria-pressed={view === v} onClick={() => setView(v)} className={`rounded-md px-3 py-1.5 font-medium ${view === v ? 'bg-white/10 text-neutral-100' : 'text-neutral-400'}`}>
               {v === 'front' ? 'Delante' : 'Detrás'}
             </button>
           ))}
@@ -71,7 +71,7 @@ export function BodyMap({ muscles }: { muscles: MuscleStatus[] }) {
                         points={p}
                         fill={fill(m)}
                         fillOpacity={m?.inactive ? 0.45 : 1}
-                        stroke="#0a0a0f"
+                        stroke="#0b0909"
                         strokeWidth="1.4"
                         strokeLinejoin="round"
                         strokeDasharray={m?.inactive ? '3 2' : undefined}
@@ -84,7 +84,7 @@ export function BodyMap({ muscles }: { muscles: MuscleStatus[] }) {
           </motion.svg>
         </AnimatePresence>
       </div>
-      <p className="mt-1 text-center text-xs text-zinc-500">Desliza para girar · toca un músculo para ver su ficha</p>
+      <p className="mt-1 text-center text-xs text-neutral-500">Desliza para girar · toca un músculo para ver su ficha</p>
     </section>
   )
 }

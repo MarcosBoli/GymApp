@@ -18,7 +18,7 @@ export function BottomTabBar() {
               end={path === '/'}
               className={({ isActive }) =>
                 `relative flex h-full flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors ${
-                  isActive ? 'text-accent' : 'text-zinc-500 active:text-zinc-300'
+                  isActive ? 'text-accent' : 'text-neutral-500 active:text-neutral-300'
                 }`
               }
             >
