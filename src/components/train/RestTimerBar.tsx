@@ -40,7 +40,7 @@ export function RestTimerBar() {
                 <>
                   <TimerButton onClick={() => (unlockAudio(), adjust(Date.now(), -15))}>−15</TimerButton>
                   <div className="flex-1 text-center">
-                    <div className="text-xs text-zinc-400">Descanso</div>
+                    <div className="text-xs text-neutral-400">Descanso</div>
                     <div className="text-3xl font-bold tabular-nums">{formatClock(restRemainingMs(endsAt, now), 'ceil')}</div>
                   </div>
                   <TimerButton onClick={() => (unlockAudio(), adjust(Date.now(), 15))}>+15</TimerButton>

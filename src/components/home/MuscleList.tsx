@@ -14,7 +14,7 @@ export function MuscleList({ muscles }: { muscles: MuscleStatus[] }) {
             <Emblem tierIndex={m.displayed?.tierIndex ?? null} state={emblemState(m)} size={36} />
             <span className="min-w-0">
               <span className="block truncate text-sm font-medium">{m.name}</span>
-              <span className={`block truncate text-xs ${m.inactive ? 'text-amber-300' : 'text-zinc-500'}`}>
+              <span className={`block truncate text-xs ${m.inactive ? 'text-amber-300' : 'text-neutral-500'}`}>
                 {m.displayed ? formatRank(m.displayed) : 'Sin rango'}
                 {m.inactive ? ' · inactivo' : ''}
               </span>

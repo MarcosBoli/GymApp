@@ -58,14 +58,14 @@ export function ExercisePicker({ workoutId, catalog, selectedIds }: { workoutId:
                   >
                     <span>
                       <span className="block font-medium">{item.name}</span>
-                      <span className="block text-sm text-zinc-500">{item.primaryMuscles.join(', ')}</span>
+                      <span className="block text-sm text-neutral-500">{item.primaryMuscles.join(', ')}</span>
                     </span>
                     <span className="text-xl text-accent">{added ? '✓' : '+'}</span>
                   </button>
                 </li>
               )
             })}
-            {results.length === 0 && <li className="py-10 text-center text-zinc-500">Sin resultados</li>}
+            {results.length === 0 && <li className="py-10 text-center text-neutral-500">Sin resultados</li>}
           </ul>
         </motion.div>
       )}

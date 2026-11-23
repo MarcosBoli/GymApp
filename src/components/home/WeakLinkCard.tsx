@@ -15,14 +15,14 @@ export function WeakLinkCard({ weak, inactive }: { weak: MuscleStatus | null; in
         <div className="min-w-0 flex-1">
           <div className="text-xs font-semibold tracking-wide text-amber-300 uppercase">Eslabón débil</div>
           <div className="text-lg font-semibold">{weak.name}</div>
-          <div className="text-sm text-zinc-400">
+          <div className="text-sm text-neutral-400">
             {formatRank(weak.displayed)} · le faltan {lpToNext(weak.displayed)} LP para subir
           </div>
         </div>
-        <span aria-hidden className="text-xl text-zinc-500">›</span>
+        <span aria-hidden className="text-xl text-neutral-500">›</span>
       </button>
       {inactive.length > 0 && (
-        <p className="mt-3 border-t border-border/60 pt-3 text-sm text-zinc-400">
+        <p className="mt-3 border-t border-border/60 pt-3 text-sm text-neutral-400">
           <span className="font-medium text-amber-300">Inactivos +14 días: </span>
           {inactive.map((m) => m.name).join(', ')}
         </p>

@@ -49,8 +49,8 @@ export function Emblem({ tierIndex, division, state = 'ranked', size = 48, class
             <path
               key={i}
               d={`M${5 + i * 10} 0.8 L${8.6 + i * 10} 4 L${5 + i * 10} 7.2 L${1.4 + i * 10} 4 Z`}
-              fill={i < pips ? '#f4f4f5' : '#3f3f46'}
-              stroke="#0a0a0f"
+              fill={i < pips ? '#f4f4f5' : '#404040'}
+              stroke="#0b0909"
               strokeWidth="0.8"
             />
           ))}
@@ -58,20 +58,20 @@ export function Emblem({ tierIndex, division, state = 'ranked', size = 48, class
       )}
       {visual === 'locked' && (
         <svg viewBox="0 0 24 24" className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" style={{ width: size * 0.36, height: size * 0.36 }}>
-          <rect x="5" y="10.5" width="14" height="10" rx="2" fill="#a1a1aa" />
-          <path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" fill="none" stroke="#a1a1aa" strokeWidth="2.2" />
+          <rect x="5" y="10.5" width="14" height="10" rx="2" fill="#a3a3a3" />
+          <path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" fill="none" stroke="#a3a3a3" strokeWidth="2.2" />
         </svg>
       )}
       {visual === 'inactive' && (
         <svg viewBox="0 0 24 24" className="absolute top-0 right-0" style={{ width: badge, height: badge }}>
-          <circle cx="12" cy="12" r="11" fill="#fcd34d" stroke="#0a0a0f" strokeWidth="2" />
-          <path d="M12 6.5V12l3.5 2.2" fill="none" stroke="#0a0a0f" strokeWidth="2.2" strokeLinecap="round" />
+          <circle cx="12" cy="12" r="11" fill="#fcd34d" stroke="#0b0909" strokeWidth="2" />
+          <path d="M12 6.5V12l3.5 2.2" fill="none" stroke="#0b0909" strokeWidth="2.2" strokeLinecap="round" />
         </svg>
       )}
       {visual === 'promo' && (
         <svg viewBox="0 0 24 24" className="absolute top-0 right-0" style={{ width: badge, height: badge }}>
-          <circle cx="12" cy="12" r="11" fill="#67e8f9" stroke="#0a0a0f" strokeWidth="2" />
-          <path d="M7 14l5-5 5 5" fill="none" stroke="#0a0a0f" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+          <circle cx="12" cy="12" r="11" fill="#f5f5f5" stroke="#0b0909" strokeWidth="2" />
+          <path d="M7 14l5-5 5 5" fill="none" stroke="#ff4545" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       )}
     </span>

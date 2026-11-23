@@ -15,7 +15,7 @@ export function MacroLegend(n: { proteinG: number; carbsG: number; fatG: number 
     <dl className="mt-2 grid grid-cols-3 gap-2 text-sm">
       {MACROS.map((m) => (
         <div key={m.key}>
-          <dt className="flex items-center gap-1.5 text-zinc-400">
+          <dt className="flex items-center gap-1.5 text-neutral-400">
             <span aria-hidden className="size-2.5 shrink-0 rounded-full" style={{ background: m.color }} />
             {m.label}
           </dt>

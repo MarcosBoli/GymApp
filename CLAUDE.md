@@ -29,7 +29,7 @@ src/
   router.tsx   Rutas (/, /entrenar, /entrenar/plan, /comida, /progreso, /perfil), cada página con `lazy` (chunk propio)
   main.tsx     Arranque: registro del SW, storage.persist(), render
   index.css    Tailwind + tema + utilidades safe-area (pt-safe, pb-safe, pl-safe, pr-safe)
-public/        Iconos PWA/iOS (generados desde public/logo.svg)
+public/        Iconos PWA/iOS (generados desde assets-src/logo.png)
 api/           Funciones serverless de Vercel (entradas finas: health, chat, plan)
 server/ai/     Lógica de las funciones: secreto, límites, validación, llamada a Claude, errores (+ tests)
 ```
@@ -39,7 +39,7 @@ server/ai/     Lógica de las funciones: secreto, límites, validación, llamada
 - **Lógica de negocio pura en `src/domain`**: funciones sin efectos (sin React, sin Dexie, sin `Date.now()` implícito: pasar fechas como parámetro), cada una con su test Vitest al lado (`foo.ts` + `foo.test.ts`).
 - **Sin lógica en componentes**: los componentes solo leen datos (`useLiveQuery`), llaman a funciones de `domain`/`db` y pintan. Nada de cálculos, reglas ni transformaciones no triviales en JSX.
 - **Mobile-first a 390 px de ancho** (iPhone 12–16). Contenido centrado con `max-w-lg`; no diseñar para escritorio.
-- **Modo oscuro por defecto** (`class="dark"` en `<html>`, `color-scheme: dark`).
+- **Modo oscuro por defecto** (`class="dark"` en `<html>`, `color-scheme: dark`). Tema negro y rojo (a juego con insignias e icono): fondos casi negros cálidos (`--color-bg` #0b0909, `--color-surface` #171212, `--color-border` #2c2222), grises `neutral-*` (no `zinc`) y acento rojo `--color-accent` #ff4545 (texto oscuro encima en botones). Colores semánticos aparte: rojo errores, ámbar avisos, verde hecho.
 - **iOS**:
   - Respetar safe areas con las utilidades `pt-safe`/`pb-safe`/`pl-safe`/`pr-safe` o `env(safe-area-inset-*)`; el status bar es `black-translucent`, así que el contenido va por debajo de él.
   - Inputs con `font-size ≥ 16px` (ya forzado en `index.css`) para que Safari no haga zoom.
@@ -74,13 +74,13 @@ server/ai/     Lógica de las funciones: secreto, límites, validación, llamada
   - Escáner: `@zxing/browser` (cámara trasera, EAN/UPC), cargado con `lazy`. `resolveBarcode`: local → Open Food Facts (se guarda en `foods` si viene completo) → alta manual con el código precargado.
   - Recientes se derivan de las comidas; favoritos con `food.isFavorite`. `mealItems` guardan copia de los valores por 100 g y `createdAt` para el orden.
   - TDEE: Mifflin-St Jeor × factor de actividad; adaptativo con 14 días = ingesta media (solo días con registros, mín. 10) − Δ peso tendencial × 7700 / 14. Tendencia = EMA diaria α 0,1 con huecos interpolados. Objetivo: −20 % / 0 / +10 %; proteína 2 g/kg, grasa 25 %.
-  - Colores de datos validados con la skill dataviz en `src/components/dataColors.ts` (hex: no usar `var()` en atributos SVG).
+  - Colores de datos validados con la skill dataviz en `src/components/dataColors.ts` (hex: no usar `var()` en atributos SVG). Series únicas (tendencia, e1RM, historial de rangos) y el mapa de calor (rampa roja `VOLUME_RAMP`) en el rojo del tema; macros y déficit/superávit conservan tonos distintos.
 - **Carga diferida**: cada página va en su propio chunk (`lazy` en `router.tsx`); lo pesado y secundario dentro de una página (Recharts, zxing) con `React.lazy` + `Suspense`. El SW precachea todos los chunks (offline intacto) y `vite:preloadError` recarga si falta un chunk de una versión anterior.
 - **Inicio y Progreso** (`src/domain/progress.ts`, `src/components/rank/Emblem.tsx`, `src/data/bodyMap.ts`):
   - `buildRankOverview` da los rangos a mostrar (respetando promos), eslabón débil e inactivos; `getRankingInputs` (db) aporta los datos.
   - Silueta: polígonos propios de la mitad izquierda en `bodyMap.ts`, reflejados con `mirrorPoints`; cada músculo es un `<g role="button">` con `aria-label` y hay una lista equivalente debajo (el rango nunca va solo en el color).
   - Insignias: imágenes propias en `src/assets/ranks/rank-N-<id>.png` (512 px, originales); la app usa las WebP de 256 px de `src/assets/ranks/web/` (`npm run optimize-rank-images` tras cambiar un PNG), mapeadas por id de tier en `rankImages.ts`. Encima, por código: pips de división (III → 1 … I → 3) y estados de `emblemState` (bloqueada = sin rango, inactiva, promo con brillo del color del tier).
-  - Progreso: peso bruto + tendencia, mapa de calor de series/semana (rampa azul secuencial en `VOLUME_RAMP`) e historial de rangos desde `workout.summary`.
+  - Progreso: peso bruto + tendencia, mapa de calor de series/semana (rampa roja secuencial en `VOLUME_RAMP`) e historial de rangos desde `workout.summary`.
 - **Rendimiento** (medido con 1 año de datos y CPU ×4):
   - Nunca leer tablas enteras que crecen con el tiempo (`sets`, `mealItems`, `workouts`) si basta una ventana: usar los índices `sets.performedAt`, `[exerciseId+performedAt]` y `mealItems.date`. Evitar `anyOf` con cientos de claves (un viaje a IndexedDB por clave).
   - Gráficas Recharts sin animación (`isAnimationActive={false}`) y ≤ ~120 puntos (`bucketWeightTrend` agrega por semanas).
@@ -121,7 +121,7 @@ npm run preview             # servir dist/ (el service worker solo funciona en b
 npm test                    # tests Vitest (una pasada)
 npm run test:watch          # tests en modo watch
 npm run typecheck           # solo comprobación de tipos
-npm run generate-pwa-assets # regenerar iconos desde public/logo.svg
+npm run generate-pwa-assets # regenerar iconos desde assets-src/logo.png
 npm run optimize-rank-images # insignias de rango PNG → WebP 256 px (src/assets/ranks/web)
 npm run fake-data           # 1 año de datos falsos → fake-data/*.json (importar en Perfil)
 npx vercel dev              # app + funciones /api en local (lee .env.local; ver .env.example)

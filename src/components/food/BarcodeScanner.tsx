@@ -49,7 +49,7 @@ export default function BarcodeScanner({ onDetected }: { onDetected: (code: stri
     <div className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl bg-black">
       <video ref={video} className="h-full w-full object-cover" muted playsInline autoPlay />
       {error ? (
-        <p className="absolute inset-0 grid place-items-center p-6 text-center text-sm text-zinc-300">{error}</p>
+        <p className="absolute inset-0 grid place-items-center p-6 text-center text-sm text-neutral-300">{error}</p>
       ) : (
         <div aria-hidden className="pointer-events-none absolute inset-x-8 top-1/2 h-28 -translate-y-1/2 rounded-xl border-2 border-accent/80 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]" />
       )}

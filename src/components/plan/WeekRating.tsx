@@ -14,7 +14,7 @@ export function WeekRating({ title, onRate, onSkip }: { title: string; onRate: (
         ))}
       </div>
       {onSkip && (
-        <button type="button" onClick={onSkip} className="mt-2 w-full py-2 text-sm text-zinc-500">
+        <button type="button" onClick={onSkip} className="mt-2 w-full py-2 text-sm text-neutral-500">
           Omitir
         </button>
       )}

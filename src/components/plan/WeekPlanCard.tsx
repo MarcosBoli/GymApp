@@ -26,7 +26,7 @@ export function WeekPlanCard({ variant }: { variant: 'home' | 'train' }) {
     return (
       <section className="rounded-2xl border border-accent/40 bg-accent/[0.06] p-4">
         <h2 className="text-lg font-semibold">Rutina de esta semana</h2>
-        <p className="mt-1 text-sm text-zinc-300">Aún no tienes rutina para esta semana. La IA la diseña con tus rangos, tu eslabón débil y cómo te fue la semana pasada.</p>
+        <p className="mt-1 text-sm text-neutral-300">Aún no tienes rutina para esta semana. La IA la diseña con tus rangos, tu eslabón débil y cómo te fue la semana pasada.</p>
         <button type="button" onClick={openGenerator} className="mt-3 h-12 w-full rounded-xl bg-accent font-bold text-bg active:scale-[0.98]">
           Generar con IA
         </button>
@@ -59,8 +59,8 @@ export function WeekPlanCard({ variant }: { variant: 'home' | 'train' }) {
               key={name}
               title={day ? `${name}: ${day.name}${isDone ? ' (hecho)' : ''}` : `${name}: descanso`}
               className={`flex h-10 flex-1 flex-col items-center justify-center rounded-lg text-[11px] font-semibold ${
-                !day ? 'text-zinc-600' : isDone ? 'bg-emerald-500/15 text-emerald-300' : next?.dayIndex === i ? 'bg-accent/20 text-accent' : 'bg-white/5 text-zinc-300'
-              } ${i === todayIdx ? 'ring-1 ring-zinc-500' : ''}`}
+                !day ? 'text-neutral-600' : isDone ? 'bg-emerald-500/15 text-emerald-300' : next?.dayIndex === i ? 'bg-accent/20 text-accent' : 'bg-white/5 text-neutral-300'
+              } ${i === todayIdx ? 'ring-1 ring-neutral-500' : ''}`}
             >
               <span>{name.slice(0, 2)}</span>
               <span aria-hidden>{!day ? '·' : isDone ? '✓' : '●'}</span>
@@ -71,8 +71,8 @@ export function WeekPlanCard({ variant }: { variant: 'home' | 'train' }) {
 
       {next ? (
         <div className="mt-3">
-          <p className="text-sm text-zinc-400">{next.dayIndex === todayIdx ? 'Hoy toca' : next.dayIndex < todayIdx ? 'Pendiente' : 'Próximo'}: <span className="font-semibold text-zinc-100">{DAY_NAMES[next.dayIndex]} · {next.name}</span></p>
-          <p className="mt-1 line-clamp-2 text-sm text-zinc-500">{next.exercises.map((e) => catalog.exerciseById.get(e.exerciseId)?.name ?? e.exerciseId).join(' · ')}</p>
+          <p className="text-sm text-neutral-400">{next.dayIndex === todayIdx ? 'Hoy toca' : next.dayIndex < todayIdx ? 'Pendiente' : 'Próximo'}: <span className="font-semibold text-neutral-100">{DAY_NAMES[next.dayIndex]} · {next.name}</span></p>
+          <p className="mt-1 line-clamp-2 text-sm text-neutral-500">{next.exercises.map((e) => catalog.exerciseById.get(e.exerciseId)?.name ?? e.exerciseId).join(' · ')}</p>
           <button type="button" onClick={start} className="mt-3 h-14 w-full rounded-2xl bg-accent text-lg font-bold text-bg active:scale-[0.98]">
             Empezar {next.name}
           </button>

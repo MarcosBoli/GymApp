@@ -54,11 +54,11 @@ export default function PlanPage() {
       <>
         <PageHeader title="Rutina" />
         <div className="space-y-4 px-4">
-          <p className="text-zinc-400">Semana del {range}. Aún no hay rutina.</p>
+          <p className="text-neutral-400">Semana del {range}. Aún no hay rutina.</p>
           <button type="button" onClick={openGenerator} className="h-14 w-full rounded-2xl bg-accent text-lg font-bold text-bg">
             Generar con IA
           </button>
-          <Link to="/entrenar" className="block text-center text-sm text-zinc-400">Volver a Entrenar</Link>
+          <Link to="/entrenar" className="block text-center text-sm text-neutral-400">Volver a Entrenar</Link>
         </div>
       </>
     )
@@ -86,10 +86,10 @@ export default function PlanPage() {
         <Link to="/entrenar" className="pb-1 text-sm font-medium text-accent">Entrenar</Link>
       </PageHeader>
       <div className="space-y-4 px-4">
-        <p className="text-sm text-zinc-400">
+        <p className="text-sm text-neutral-400">
           Semana del {range} · {plan.source === 'ai' ? `IA${plan.model ? ` (${plan.model})` : ''}` : 'editada a mano'}
         </p>
-        {plan.reasoning && <p className="rounded-2xl border border-border bg-surface p-4 text-sm text-zinc-300">{plan.reasoning}</p>}
+        {plan.reasoning && <p className="rounded-2xl border border-border bg-surface p-4 text-sm text-neutral-300">{plan.reasoning}</p>}
         {!editing && (
           <button type="button" onClick={() => openChat(null)} className="h-11 w-full rounded-xl bg-accent/15 font-semibold text-accent">
             Preguntar al coach sobre la rutina
@@ -131,7 +131,7 @@ export default function PlanPage() {
           </section>
         ))}
 
-        <p className="text-xs text-zinc-500">Los pesos los calcula la app con tu mejor e1RM de los últimos 90 días, el rango de repeticiones y el RPE objetivo.</p>
+        <p className="text-xs text-neutral-500">Los pesos los calcula la app con tu mejor e1RM de los últimos 90 días, el rango de repeticiones y el RPE objetivo.</p>
 
         {editing ? (
           <div className="grid grid-cols-2 gap-2">
@@ -147,7 +147,7 @@ export default function PlanPage() {
 
         {versions.length > 1 && (
           <section className="pb-4">
-            <button type="button" onClick={() => setShowHistory(!showHistory)} className="text-sm font-medium text-zinc-400" aria-expanded={showHistory}>
+            <button type="button" onClick={() => setShowHistory(!showHistory)} className="text-sm font-medium text-neutral-400" aria-expanded={showHistory}>
               Historial de esta semana ({versions.length} versiones) {showHistory ? '▲' : '▼'}
             </button>
             {showHistory && (
@@ -200,8 +200,8 @@ function ExerciseRow(props: {
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="font-medium">{catalog.exerciseById.get(e.exerciseId)?.name ?? e.exerciseId}</div>
-          <div className="text-sm text-zinc-400 tabular-nums">{formatPlanTarget(e, props.weight)}</div>
-          {e.notes && <div className="text-xs text-zinc-500">{e.notes}</div>}
+          <div className="text-sm text-neutral-400 tabular-nums">{formatPlanTarget(e, props.weight)}</div>
+          {e.notes && <div className="text-xs text-neutral-500">{e.notes}</div>}
         </div>
         {!editing && (
           <button
@@ -235,7 +235,7 @@ function ExerciseRow(props: {
 function Mini({ label, value, onStep }: { label: string; value: number; onStep: (d: 1 | -1) => void }) {
   return (
     <div className="rounded-lg bg-white/5 p-1">
-      <div className="text-zinc-500">{label}</div>
+      <div className="text-neutral-500">{label}</div>
       <div className="flex items-center justify-between">
         <button type="button" onClick={() => onStep(-1)} aria-label={`Restar ${label}`} className="size-8 text-lg">−</button>
         <span className="text-sm font-semibold tabular-nums">{String(value).replace('.', ',')}</span>
@@ -267,17 +267,17 @@ function ExercisePickerSheet(props: { picker: Picker; catalog: Catalog; equipmen
         placeholder="Buscar ejercicio o músculo"
         className="mb-2 h-12 w-full rounded-xl border border-border bg-surface px-4 outline-none focus:border-accent/60"
       />
-      {picker?.kind === 'swap' && !query.trim() && <p className="mb-1 text-sm text-zinc-500">Equivalentes (mismos músculos principales, tu material):</p>}
+      {picker?.kind === 'swap' && !query.trim() && <p className="mb-1 text-sm text-neutral-500">Equivalentes (mismos músculos principales, tu material):</p>}
       <ul>
         {options.map((o) => (
           <li key={o.id}>
             <button type="button" onClick={() => props.onPick(o.id)} className="flex w-full flex-col items-start border-b border-border/60 py-3 text-left active:bg-white/5">
               <span className="font-medium">{o.name}</span>
-              <span className="text-sm text-zinc-500">{o.primaryMuscles.join(', ')}</span>
+              <span className="text-sm text-neutral-500">{o.primaryMuscles.join(', ')}</span>
             </button>
           </li>
         ))}
-        {options.length === 0 && <li className="py-8 text-center text-zinc-500">Sin resultados</li>}
+        {options.length === 0 && <li className="py-8 text-center text-neutral-500">Sin resultados</li>}
       </ul>
     </Sheet>
   )

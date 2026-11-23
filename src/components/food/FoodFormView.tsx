@@ -35,11 +35,11 @@ export function FoodFormView({ mealType, draft, foodId, notice }: { mealType: Me
   return (
     <form onSubmit={submit} className="space-y-4">
       {notice && <p className="rounded-xl border border-amber-400/30 bg-amber-400/5 p-3 text-sm text-amber-200">{notice}</p>}
-      <p className="text-sm text-zinc-500">Valores por 100 g, tal y como vienen en la etiqueta.</p>
+      <p className="text-sm text-neutral-500">Valores por 100 g, tal y como vienen en la etiqueta.</p>
       <div className="grid grid-cols-2 gap-3">
         {FIELDS.map((f) => (
           <label key={f.key} className={`block ${f.full ? 'col-span-2' : ''}`}>
-            <span className="mb-1 block text-sm text-zinc-400">{f.label}</span>
+            <span className="mb-1 block text-sm text-neutral-400">{f.label}</span>
             <input
               type="text"
               inputMode={f.numeric ? (f.key === 'barcode' ? 'numeric' : 'decimal') : 'text'}

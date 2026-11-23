@@ -37,7 +37,7 @@ export function ScanFlow({ mealType }: { mealType: MealType }) {
   }
 
   if (looking) {
-    return <p className="py-16 text-center text-zinc-400">Buscando {looking}…</p>
+    return <p className="py-16 text-center text-neutral-400">Buscando {looking}…</p>
   }
 
   return (
@@ -45,7 +45,7 @@ export function ScanFlow({ mealType }: { mealType: MealType }) {
       <Suspense fallback={<div className="aspect-[3/4] w-full animate-pulse rounded-2xl bg-surface" />}>
         <BarcodeScanner onDetected={handle} />
       </Suspense>
-      <p className="text-center text-sm text-zinc-500">Apunta al código de barras del envase.</p>
+      <p className="text-center text-sm text-neutral-500">Apunta al código de barras del envase.</p>
       <form onSubmit={submitManual} className="flex gap-2">
         <input
           type="text"

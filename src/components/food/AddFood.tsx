@@ -53,9 +53,9 @@ export function AddFood({ mealType, today }: { mealType: MealType; today: string
 function FoodList({ title, foods, onPick, empty }: { title: string; foods: Food[]; onPick: (f: Food) => void; empty: string }) {
   return (
     <section>
-      <h3 className="mb-1 text-sm font-semibold tracking-wide text-zinc-400 uppercase">{title}</h3>
+      <h3 className="mb-1 text-sm font-semibold tracking-wide text-neutral-400 uppercase">{title}</h3>
       {foods.length === 0 ? (
-        <p className="py-3 text-sm text-zinc-500">{empty}</p>
+        <p className="py-3 text-sm text-neutral-500">{empty}</p>
       ) : (
         <ul>
           {foods.map((f) => (
@@ -66,9 +66,9 @@ function FoodList({ title, foods, onPick, empty }: { title: string; foods: Food[
                     {f.isFavorite && <span className="mr-1 text-amber-300">★</span>}
                     {f.name}
                   </span>
-                  <span className="block truncate text-sm text-zinc-500">{f.brand ?? 'Sin marca'}</span>
+                  <span className="block truncate text-sm text-neutral-500">{f.brand ?? 'Sin marca'}</span>
                 </span>
-                <span className="shrink-0 text-sm text-zinc-400 tabular-nums">{formatDecimal(Math.round(f.kcal))} kcal/100 g</span>
+                <span className="shrink-0 text-sm text-neutral-400 tabular-nums">{formatDecimal(Math.round(f.kcal))} kcal/100 g</span>
               </button>
             </li>
           ))}

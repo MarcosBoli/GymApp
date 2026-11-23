@@ -46,7 +46,7 @@ export default function ProgressPage() {
           <div className="flex items-baseline justify-between">
             <h2 className="text-lg font-semibold">Peso corporal</h2>
             {last && first && (
-              <span className="text-sm text-zinc-300 tabular-nums">
+              <span className="text-sm text-neutral-300 tabular-nums">
                 {formatDecimal(last.trendKg, 1)} kg · {last.trendKg - first.trendKg >= 0 ? '+' : '−'}
                 {formatDecimal(Math.abs(last.trendKg - first.trendKg), 1)}
               </span>
@@ -54,16 +54,16 @@ export default function ProgressPage() {
           </div>
           <div className="my-2 flex gap-1.5" role="group" aria-label="Rango de fechas">
             {RANGES.map((r) => (
-              <button key={r.label} type="button" aria-pressed={range === r.days} onClick={() => setRange(r.days)} className={`rounded-full px-3 py-1 text-sm font-medium ${range === r.days ? 'bg-white/10 text-zinc-100' : 'text-zinc-400'}`}>
+              <button key={r.label} type="button" aria-pressed={range === r.days} onClick={() => setRange(r.days)} className={`rounded-full px-3 py-1 text-sm font-medium ${range === r.days ? 'bg-white/10 text-neutral-100' : 'text-neutral-400'}`}>
                 {r.label}
               </button>
             ))}
           </div>
           {trend.length < 2 ? (
-            <p className="py-6 text-center text-sm text-zinc-500">Registra tu peso en Inicio para ver la evolución.</p>
+            <p className="py-6 text-center text-sm text-neutral-500">Registra tu peso en Inicio para ver la evolución.</p>
           ) : (
             <>
-              <div className="mb-1 flex gap-4 text-xs text-zinc-400">
+              <div className="mb-1 flex gap-4 text-xs text-neutral-400">
                 <span className="flex items-center gap-1.5"><span aria-hidden className="size-2.5 rounded-full" style={{ background: DATA_COLORS.rawWeight }} />{chartPoints.length < trend.length ? 'Media semanal' : 'Peso registrado'}</span>
                 <span className="flex items-center gap-1.5"><span aria-hidden className="h-0.5 w-4 rounded" style={{ background: DATA_COLORS.trend }} />Tendencia</span>
               </div>
@@ -77,7 +77,7 @@ export default function ProgressPage() {
         <section className="rounded-2xl border border-border bg-surface p-4">
           <h2 className="mb-2 text-lg font-semibold">Volumen semanal por músculo</h2>
           {volume.byMuscle.size === 0 ? (
-            <p className="py-6 text-center text-sm text-zinc-500">Sin series en las últimas 8 semanas. Cada serie que registres en Entrenar sumará aquí a sus músculos.</p>
+            <p className="py-6 text-center text-sm text-neutral-500">Sin series en las últimas 8 semanas. Cada serie que registres en Entrenar sumará aquí a sus músculos.</p>
           ) : (
             <VolumeHeatmap weekStarts={volume.weekStarts} rows={data.muscles.map((m) => ({ id: m.id, name: m.name, values: volume.byMuscle.get(m.id) ?? volume.weekStarts.map(() => 0) }))} />
           )}
@@ -87,13 +87,13 @@ export default function ProgressPage() {
           <h2 className="text-lg font-semibold">Historial de rangos</h2>
           <div className="my-2 flex gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Rango a mostrar">
             {rankOptions.map((o) => (
-              <button key={o.id} type="button" aria-pressed={rankId === o.id} onClick={() => setRankId(o.id)} className={`shrink-0 rounded-full px-3 py-1 text-sm font-medium ${rankId === o.id ? 'bg-accent/15 text-accent' : 'bg-white/5 text-zinc-400'}`}>
+              <button key={o.id} type="button" aria-pressed={rankId === o.id} onClick={() => setRankId(o.id)} className={`shrink-0 rounded-full px-3 py-1 text-sm font-medium ${rankId === o.id ? 'bg-accent/15 text-accent' : 'bg-white/5 text-neutral-400'}`}>
                 {o.name}
               </button>
             ))}
           </div>
           {history.length === 0 ? (
-            <p className="py-6 text-center text-sm text-zinc-500">Termina entrenos para ver cómo evoluciona tu rango.</p>
+            <p className="py-6 text-center text-sm text-neutral-500">Termina entrenos para ver cómo evoluciona tu rango.</p>
           ) : (
             <Suspense fallback={<div className="h-52" />}>
               <RankHistoryChart data={history} />

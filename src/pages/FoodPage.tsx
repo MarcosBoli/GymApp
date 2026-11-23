@@ -45,8 +45,8 @@ export default function FoodPage() {
             <div className="flex items-baseline justify-between">
               <span className="text-3xl font-bold tabular-nums">
                 {formatDecimal(Math.round(day.totals.kcal))}
-                {overview?.ready && <span className="text-lg font-normal text-zinc-400"> / {formatDecimal(overview.target.kcal)}</span>}
-                <span className="ml-1 text-base font-normal text-zinc-400">kcal</span>
+                {overview?.ready && <span className="text-lg font-normal text-neutral-400"> / {formatDecimal(overview.target.kcal)}</span>}
+                <span className="ml-1 text-base font-normal text-neutral-400">kcal</span>
               </span>
             </div>
             <MacroLegend {...day.totals} />
@@ -54,7 +54,7 @@ export default function FoodPage() {
         )}
 
         {day && day.totals.kcal === 0 && Object.values(day.byType).every((m) => m.items.length === 0) && (
-          <p className="rounded-2xl border border-dashed border-border px-4 py-4 text-center text-sm text-zinc-400">
+          <p className="rounded-2xl border border-dashed border-border px-4 py-4 text-center text-sm text-neutral-400">
             {date === today ? 'Aún no has registrado nada hoy.' : 'Nada registrado este día.'} Pulsa <span className="font-semibold text-accent">+ Añadir</span> en una comida para buscar,
             escanear el código de barras o crear un alimento.
           </p>
@@ -67,7 +67,7 @@ export default function FoodPage() {
               <section key={id} className="rounded-2xl border border-border bg-surface p-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold">{label}</h2>
-                  <span className="text-sm text-zinc-400 tabular-nums">{formatDecimal(Math.round(slot.totals.kcal))} kcal</span>
+                  <span className="text-sm text-neutral-400 tabular-nums">{formatDecimal(Math.round(slot.totals.kcal))} kcal</span>
                 </div>
                 {slot.items.length > 0 && (
                   <ul className="mt-2">
@@ -80,9 +80,9 @@ export default function FoodPage() {
                         >
                           <span className="min-w-0">
                             <span className="block truncate">{item.foodName}</span>
-                            <span className="text-sm text-zinc-500">{formatDecimal(item.grams)} g</span>
+                            <span className="text-sm text-neutral-500">{formatDecimal(item.grams)} g</span>
                           </span>
-                          <span className="shrink-0 text-sm text-zinc-300 tabular-nums">{formatDecimal(Math.round(itemNutrition(item).kcal))} kcal</span>
+                          <span className="shrink-0 text-sm text-neutral-300 tabular-nums">{formatDecimal(Math.round(itemNutrition(item).kcal))} kcal</span>
                         </button>
                       </li>
                     ))}

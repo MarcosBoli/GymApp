@@ -73,7 +73,7 @@ function FormBody({ initial }: { initial: Form }) {
               type="button"
               onClick={() => set('sex', sex)}
               aria-pressed={form.sex === sex}
-              className={`h-12 rounded-xl border font-medium ${form.sex === sex ? 'border-accent bg-accent/10 text-accent' : 'border-border text-zinc-400'}`}
+              className={`h-12 rounded-xl border font-medium ${form.sex === sex ? 'border-accent bg-accent/10 text-accent' : 'border-border text-neutral-400'}`}
             >
               {sex === 'male' ? 'Hombre' : 'Mujer'}
             </button>
@@ -115,7 +115,7 @@ function FormBody({ initial }: { initial: Form }) {
       </Field>
 
       <h3 className="pt-2 text-base font-semibold">Entrenamiento</h3>
-      <p className="-mt-2 text-sm text-zinc-500">La IA usa estos datos para diseñar tu rutina semanal.</p>
+      <p className="-mt-2 text-sm text-neutral-500">La IA usa estos datos para diseñar tu rutina semanal.</p>
 
       <Field label="Objetivo" error={errors.trainingGoal} group>
         <Segmented options={TRAINING_GOALS.map((g) => ({ value: g, label: TRAINING_GOAL_LABELS[g] }))} value={form.trainingGoal} onChange={(v) => set('trainingGoal', v)} />
@@ -145,7 +145,7 @@ function FormBody({ initial }: { initial: Form }) {
                 type="button"
                 aria-pressed={on}
                 onClick={() => set('equipment', on ? form.equipment.filter((x) => x !== eq) : [...form.equipment, eq])}
-                className={`h-10 rounded-full border px-4 text-sm font-medium ${on ? 'border-accent bg-accent/10 text-accent' : 'border-border text-zinc-400'}`}
+                className={`h-10 rounded-full border px-4 text-sm font-medium ${on ? 'border-accent bg-accent/10 text-accent' : 'border-border text-neutral-400'}`}
               >
                 {on ? '✓ ' : ''}
                 {EQUIPMENT_LABELS[eq]}
@@ -181,7 +181,7 @@ function Segmented<T extends string | number>({ options, value, onChange }: { op
           type="button"
           aria-pressed={value === o.value}
           onClick={() => onChange(o.value)}
-          className={`h-12 flex-1 rounded-xl border text-sm font-medium ${value === o.value ? 'border-accent bg-accent/10 text-accent' : 'border-border text-zinc-400'}`}
+          className={`h-12 flex-1 rounded-xl border text-sm font-medium ${value === o.value ? 'border-accent bg-accent/10 text-accent' : 'border-border text-neutral-400'}`}
         >
           {o.label}
         </button>
@@ -194,7 +194,7 @@ function Segmented<T extends string | number>({ options, value, onChange }: { op
 function Field({ label, error, group, children }: { label: string; error?: string; group?: boolean; children: React.ReactNode }) {
   const content = (
     <>
-      <span className="mb-1 block text-sm text-zinc-400">{label}</span>
+      <span className="mb-1 block text-sm text-neutral-400">{label}</span>
       {children}
       {error && <span className="mt-1 block text-sm text-red-300">{error}</span>}
     </>

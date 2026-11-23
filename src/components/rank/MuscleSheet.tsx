@@ -38,7 +38,7 @@ function Body({ muscle, overview, inputs }: { muscle: MuscleStatus; overview: Ra
   )
   const r = muscle.displayed
   const name = (id: string) => inputs.exerciseNames.get(id) ?? id
-  const color = r ? (RANK_CONFIG.tiers[r.tierIndex]?.color ?? '#888') : '#52525b'
+  const color = r ? (RANK_CONFIG.tiers[r.tierIndex]?.color ?? '#888') : '#525252'
   const days = muscle.lastTrainedAt !== undefined ? calendarDaysBetween(new Date(muscle.lastTrainedAt), new Date(inputs.now)) : undefined
 
   return (
@@ -52,7 +52,7 @@ function Body({ muscle, overview, inputs }: { muscle: MuscleStatus; overview: Ra
               <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-white/8" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={r.lp} aria-label="LP">
                 <div className="h-full rounded-full" style={{ width: `${r.lp}%`, background: color }} />
               </div>
-              <div className="mt-1 flex justify-between text-sm text-zinc-400 tabular-nums">
+              <div className="mt-1 flex justify-between text-sm text-neutral-400 tabular-nums">
                 <span>{r.lp} LP</span>
                 <span>{lpToNext(r)} para subir</span>
               </div>
@@ -73,14 +73,14 @@ function Body({ muscle, overview, inputs }: { muscle: MuscleStatus; overview: Ra
       </dl>
 
       <section>
-        <h3 className="mb-2 text-sm font-semibold tracking-wide text-zinc-400 uppercase">e1RM en el tiempo</h3>
+        <h3 className="mb-2 text-sm font-semibold tracking-wide text-neutral-400 uppercase">e1RM en el tiempo</h3>
         {options.length === 0 ? (
-          <p className="text-sm text-zinc-500">Aún no has entrenado ejercicios de {muscle.name.toLowerCase()}.</p>
+          <p className="text-sm text-neutral-500">Aún no has entrenado ejercicios de {muscle.name.toLowerCase()}.</p>
         ) : (
           <>
             <div className="mb-2 flex gap-2 overflow-x-auto pb-1">
               {options.map((id) => (
-                <button key={id} type="button" aria-pressed={id === exerciseId} onClick={() => setExerciseId(id)} className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-medium ${id === exerciseId ? 'bg-accent/15 text-accent' : 'bg-white/5 text-zinc-400'}`}>
+                <button key={id} type="button" aria-pressed={id === exerciseId} onClick={() => setExerciseId(id)} className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-medium ${id === exerciseId ? 'bg-accent/15 text-accent' : 'bg-white/5 text-neutral-400'}`}>
                   {name(id)}
                 </button>
               ))}
@@ -88,7 +88,7 @@ function Body({ muscle, overview, inputs }: { muscle: MuscleStatus; overview: Ra
             {history === undefined ? (
               <div className="h-44" />
             ) : history.length === 0 ? (
-              <p className="text-sm text-zinc-500">Sin series válidas para calcular el e1RM.</p>
+              <p className="text-sm text-neutral-500">Sin series válidas para calcular el e1RM.</p>
             ) : (
               <Suspense fallback={<div className="h-44" />}>
                 <E1rmChart data={history} />
@@ -99,21 +99,21 @@ function Body({ muscle, overview, inputs }: { muscle: MuscleStatus; overview: Ra
       </section>
 
       <section>
-        <h3 className="mb-2 text-sm font-semibold tracking-wide text-zinc-400 uppercase">Ejercicios que más le suman</h3>
+        <h3 className="mb-2 text-sm font-semibold tracking-wide text-neutral-400 uppercase">Ejercicios que más le suman</h3>
         {contributions.length === 0 ? (
-          <p className="text-sm text-zinc-500">Ningún ejercicio con estándar de fuerza en los últimos 42 días.</p>
+          <p className="text-sm text-neutral-500">Ningún ejercicio con estándar de fuerza en los últimos 42 días.</p>
         ) : (
           <ul className="space-y-2">
             {contributions.map((c) => (
               <li key={c.exerciseId} className="rounded-xl border border-border bg-surface px-3 py-2.5">
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="truncate font-medium">{name(c.exerciseId)}</span>
-                  <span className="shrink-0 text-sm text-zinc-400 tabular-nums">{formatDecimal(Math.round(c.share * 100))} %</span>
+                  <span className="shrink-0 text-sm text-neutral-400 tabular-nums">{formatDecimal(Math.round(c.share * 100))} %</span>
                 </div>
                 <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/8">
                   <div className="h-full rounded-full" style={{ width: `${c.share * 100}%`, background: color }} />
                 </div>
-                <div className="mt-1 text-xs text-zinc-500 tabular-nums">
+                <div className="mt-1 text-xs text-neutral-500 tabular-nums">
                   {c.factor === 1 ? 'Principal' : 'Secundario'} · score {formatDecimal(Math.round(c.score))} · e1RM {formatDecimal(c.e1rm, 1)} kg
                 </div>
               </li>
@@ -129,8 +129,8 @@ function Stat({ label, value, hint, warn }: { label: string; value: string; hint
   return (
     <div className="rounded-xl border border-border bg-surface px-2 py-3">
       <dd className={`text-xl font-bold tabular-nums ${warn ? 'text-amber-300' : ''}`}>{value}</dd>
-      <dt className="text-xs text-zinc-500">{label}</dt>
-      {hint && <div className={`text-[11px] ${warn ? 'text-amber-300' : 'text-zinc-500'}`}>{hint}</div>}
+      <dt className="text-xs text-neutral-500">{label}</dt>
+      {hint && <div className={`text-[11px] ${warn ? 'text-amber-300' : 'text-neutral-500'}`}>{hint}</div>}
     </div>
   )
 }

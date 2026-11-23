@@ -70,7 +70,7 @@ function Body({ onDone }: { onDone: () => void }) {
 
   if (!info.prefsOk || !secretOk) {
     return (
-      <div className="space-y-3 text-zinc-300">
+      <div className="space-y-3 text-neutral-300">
         <p>Para que la IA diseñe tu semana necesita:</p>
         <ul className="list-inside list-disc space-y-1 text-sm">
           {!info.prefsOk && <li>Tu objetivo, días por semana, minutos por sesión y material (Perfil › Entrenamiento).</li>}
@@ -87,7 +87,7 @@ function Body({ onDone }: { onDone: () => void }) {
     return (
       <div className="space-y-4">
         <WeekRating title="Antes de nada: ¿cómo fue la semana pasada?" onRate={rate} onSkip={() => setSkippedRating(true)} />
-        <p className="text-sm text-zinc-500">La IA lo tiene en cuenta para ajustar el volumen y la intensidad.</p>
+        <p className="text-sm text-neutral-500">La IA lo tiene en cuenta para ajustar el volumen y la intensidad.</p>
       </div>
     )
   }
@@ -98,11 +98,11 @@ function Body({ onDone }: { onDone: () => void }) {
         <div className="py-10 text-center" role="status">
           <div aria-hidden className="mx-auto size-10 animate-spin rounded-full border-4 border-accent/30 border-t-accent" />
           <p className="mt-4 font-medium">Diseñando tu semana…</p>
-          <p className="mt-1 text-sm text-zinc-500">Puede tardar hasta un minuto. No cierres la app.</p>
+          <p className="mt-1 text-sm text-neutral-500">Puede tardar hasta un minuto. No cierres la app.</p>
         </div>
       ) : (
         <>
-          <p className="text-zinc-300">
+          <p className="text-neutral-300">
             {info.existing
               ? 'Se generará una versión nueva de la rutina de esta semana. La actual quedará en el historial.'
               : 'La IA diseñará tu semana con tus rangos, tu eslabón débil, tu material y tus limitaciones. Los pesos los calcula la app con tus marcas.'}

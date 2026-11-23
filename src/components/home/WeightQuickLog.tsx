@@ -19,7 +19,7 @@ export function WeightQuickLog({ today, todayWeight }: { today: string; todayWei
   return (
     <form onSubmit={save} className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-3">
       <label className="flex-1">
-        <span className="block text-sm text-zinc-400">Peso de hoy</span>
+        <span className="block text-sm text-neutral-400">Peso de hoy</span>
         <span className="flex items-baseline gap-1">
           <input
             type="text"
@@ -32,7 +32,7 @@ export function WeightQuickLog({ today, todayWeight }: { today: string; todayWei
             placeholder="—"
             className="w-24 bg-transparent !text-2xl font-bold tabular-nums outline-none"
           />
-          <span className="text-zinc-400">kg</span>
+          <span className="text-neutral-400">kg</span>
         </span>
         {state === 'error' && <span className="block text-sm text-red-300">Entre 30 y 300 kg.</span>}
       </label>

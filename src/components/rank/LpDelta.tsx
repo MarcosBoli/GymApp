@@ -15,6 +15,6 @@ export function LpDelta({ value, delay = 0, className = '' }: { value: number; d
     })
     return () => controls.stop()
   }, [value, delay])
-  const color = value > 0 ? 'text-emerald-300' : value < 0 ? 'text-red-300' : 'text-zinc-400'
+  const color = value > 0 ? 'text-emerald-300' : value < 0 ? 'text-red-300' : 'text-neutral-400'
   return <span ref={ref} className={`font-bold tabular-nums ${color} ${className}`}>±0 LP</span>
 }

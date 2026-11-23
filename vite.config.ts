@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
-const BG = '#0a0a0f'
+const BG = '#0b0909'
 // Versión visible en Perfil: package.json + commit (Vercel lo inyecta en VERCEL_GIT_COMMIT_SHA)
 const APP_VERSION = `${process.env.npm_package_version ?? '0.0.0'}+${(process.env.VERCEL_GIT_COMMIT_SHA ?? 'local').slice(0, 7)}`
 
@@ -16,7 +16,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       // El registro se hace a mano en src/main.tsx (virtual:pwa-register)
       injectRegister: false,
-      includeAssets: ['favicon.ico', 'apple-touch-icon-180x180.png', 'logo.svg'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon-180x180.png'],
       manifest: {
         id: '/',
         name: 'GymApp',
