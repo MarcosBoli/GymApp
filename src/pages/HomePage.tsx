@@ -6,6 +6,13 @@ import { toDateKey } from '../domain/dates'
 import { formatDecimal } from '../domain/number'
 import { db } from '../db/db'
 import { getEnergyInputs } from '../db/food'
+import { getRankingInputs } from '../db/rankings'
+import { buildRankOverview } from '../domain/progress'
+import { GlobalRankHeader } from '../components/home/GlobalRankHeader'
+import { WeakLinkCard } from '../components/home/WeakLinkCard'
+import { BodyMap } from '../components/home/BodyMap'
+import { MuscleList } from '../components/home/MuscleList'
+import { MuscleSheet } from '../components/rank/MuscleSheet'
 import { PageHeader } from '../components/layout/PageHeader'
 import { Ring } from '../components/home/Ring'
 import { WeightQuickLog } from '../components/home/WeightQuickLog'
@@ -22,13 +29,22 @@ export default function HomePage() {
   const today = toDateKey(new Date())
   const overview = useLiveQuery(async () => energyOverview(await getEnergyInputs(today)), [today])
   const todayWeight = useLiveQuery(async () => ({ kg: (await db.bodyweightLogs.get(today))?.weightKg }), [today])
+  const ranks = useLiveQuery(async () => {
+    const inputs = await getRankingInputs(Date.now())
+    return { inputs, overview: buildRankOverview(inputs) }
+  }, [today])
 
-  if (!overview || !todayWeight) return null
+  if (!overview || !todayWeight || !ranks) return null
 
   return (
     <>
       <PageHeader title="Inicio" />
       <div className="space-y-4 px-4">
+        <GlobalRankHeader global={ranks.overview.global} />
+        <WeakLinkCard weak={ranks.overview.weakLink} inactive={ranks.overview.inactive} />
+        <BodyMap muscles={ranks.overview.muscles} />
+        <MuscleList muscles={ranks.overview.muscles} />
+
         {!overview.ready ? (
           <div className="rounded-2xl border border-amber-400/30 bg-amber-400/5 p-4 text-sm text-amber-200">
             {overview.missing === 'profile' ? 'Completa tu perfil' : 'Registra tu peso'} para calcular tu gasto y tus objetivos.{' '}
@@ -74,6 +90,7 @@ export default function HomePage() {
 
         <WeightQuickLog key={todayWeight.kg ?? 'none'} today={today} todayWeight={todayWeight.kg} />
       </div>
+      <MuscleSheet overview={ranks.overview} inputs={ranks.inputs} />
     </>
   )
 }

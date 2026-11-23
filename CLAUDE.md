@@ -70,6 +70,11 @@ public/        Iconos PWA/iOS (generados desde public/logo.svg)
   - TDEE: Mifflin-St Jeor × factor de actividad; adaptativo con 14 días = ingesta media (solo días con registros, mín. 10) − Δ peso tendencial × 7700 / 14. Tendencia = EMA diaria α 0,1 con huecos interpolados. Objetivo: −20 % / 0 / +10 %; proteína 2 g/kg, grasa 25 %.
   - Colores de datos validados con la skill dataviz en `src/components/dataColors.ts` (hex: no usar `var()` en atributos SVG).
 - **Carga diferida**: cada página va en su propio chunk (`lazy` en `router.tsx`); lo pesado y secundario dentro de una página (Recharts, zxing) con `React.lazy` + `Suspense`. El SW precachea todos los chunks (offline intacto) y `vite:preloadError` recarga si falta un chunk de una versión anterior.
+- **Inicio y Progreso** (`src/domain/progress.ts`, `src/domain/emblem.ts`, `src/data/bodyMap.ts`):
+  - `buildRankOverview` da los rangos a mostrar (respetando promos), eslabón débil e inactivos; `getRankingInputs` (db) aporta los datos.
+  - Silueta: polígonos propios de la mitad izquierda en `bodyMap.ts`, reflejados con `mirrorPoints`; cada músculo es un `<g role="button">` con `aria-label` y hay una lista equivalente debajo (el rango nunca va solo en el color).
+  - Emblemas procedurales (`EMBLEM_SPECS`): cada tier añade capas; el test exige complejidad estrictamente creciente. No copiar emblemas de ningún juego.
+  - Progreso: peso bruto + tendencia, mapa de calor de series/semana (rampa azul secuencial en `VOLUME_RAMP`) e historial de rangos desde `workout.summary`.
 - Textos de la UI en español. Rutas en español.
 - Cámara (`getUserMedia`, p. ej. escáner de códigos de barras) **solo funciona en HTTPS** → probar en las previews de Vercel, no en `http://<ip-local>`.
 

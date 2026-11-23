@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addDays, calendarDaysBetween, dateRange, daysBetweenKeys, fromDateKey, toDateKey } from './dates'
+import { addDays, calendarDaysBetween, dateRange, daysBetweenKeys, fromDateKey, startOfWeek, toDateKey } from './dates'
 
 describe('toDateKey', () => {
   it('formatea el día local con ceros', () => {
@@ -42,5 +42,17 @@ describe('addDays / daysBetweenKeys / dateRange / fromDateKey', () => {
   it('fromDateKey devuelve medianoche local', () => {
     const d = fromDateKey('2026-11-22')
     expect([d.getFullYear(), d.getMonth(), d.getDate(), d.getHours()]).toEqual([2026, 10, 22, 0])
+  })
+})
+
+describe('startOfWeek', () => {
+  it.each([
+    ['2026-11-23', '2026-11-23'], // lunes
+    ['2026-11-25', '2026-11-23'],
+    ['2026-11-29', '2026-11-23'], // domingo
+    ['2026-11-30', '2026-11-30'],
+    ['2027-01-01', '2026-12-28'],
+  ])('%s → %s', (d, w) => {
+    expect(startOfWeek(d)).toBe(w)
   })
 })

@@ -39,3 +39,9 @@ export function dateRange(from: DateKey, to: DateKey): DateKey[] {
   for (let d = from; d <= to; d = addDays(d, 1)) out.push(d)
   return out
 }
+
+/** Lunes de la semana de la fecha (semana europea, lunes–domingo). */
+export function startOfWeek(key: DateKey): DateKey {
+  const day = fromDateKey(key).getDay() // 0 = domingo
+  return addDays(key, -((day + 6) % 7))
+}
