@@ -14,3 +14,28 @@ export function calendarDaysBetween(from: Date, to: Date): number {
   // round absorbe los días de 23/25 h por cambio de horario
   return Math.round((b.getTime() - a.getTime()) / 86_400_000)
 }
+
+/** Date local (00:00) a partir de un DateKey. */
+export function fromDateKey(key: DateKey): Date {
+  const [y, m, d] = key.split('-').map(Number) as [number, number, number]
+  return new Date(y, m - 1, d)
+}
+
+/** Suma (o resta) días naturales a un DateKey. */
+export function addDays(key: DateKey, days: number): DateKey {
+  const date = fromDateKey(key)
+  date.setDate(date.getDate() + days)
+  return toDateKey(date)
+}
+
+/** Días naturales entre dos DateKey (b − a). */
+export function daysBetweenKeys(a: DateKey, b: DateKey): number {
+  return calendarDaysBetween(fromDateKey(a), fromDateKey(b))
+}
+
+/** Lista de DateKey de `from` a `to`, ambos incluidos. */
+export function dateRange(from: DateKey, to: DateKey): DateKey[] {
+  const out: DateKey[] = []
+  for (let d = from; d <= to; d = addDays(d, 1)) out.push(d)
+  return out
+}

@@ -64,6 +64,11 @@ public/        Iconos PWA/iOS (generados desde public/logo.svg)
   - `finishWorkout` calcula el "Resumen de partida" con `buildWorkoutSummary` (puro), lo guarda en `workout.summary` y persiste las promos en `rankStates` (v3). El resumen no se recalcula al recargar.
   - Temporizador de descanso: solo `endsAt` (timestamp) en Zustand persistido; el restante es `endsAt - ahora`. Sonido con Web Audio desbloqueado en el toque de "Guardar serie" (`unlockAudio`).
   - Pesos de ejercicios `equipment: 'bodyweight'` = lastre (vacío = 0, negativo = asistencia).
+- **Comida y energía** (`src/db/food.ts`, `src/db/barcode.ts`, `src/domain/food.ts`, `src/domain/energy.ts`):
+  - Escáner: `@zxing/browser` (cámara trasera, EAN/UPC), cargado con `lazy`. `resolveBarcode`: local → Open Food Facts (se guarda en `foods` si viene completo) → alta manual con el código precargado.
+  - Recientes se derivan de las comidas; favoritos con `food.isFavorite`. `mealItems` guardan copia de los valores por 100 g y `createdAt` para el orden.
+  - TDEE: Mifflin-St Jeor × factor de actividad; adaptativo con 14 días = ingesta media (solo días con registros, mín. 10) − Δ peso tendencial × 7700 / 14. Tendencia = EMA diaria α 0,1 con huecos interpolados. Objetivo: −20 % / 0 / +10 %; proteína 2 g/kg, grasa 25 %.
+  - Colores de datos validados con la skill dataviz en `src/components/dataColors.ts` (hex: no usar `var()` en atributos SVG).
 - Textos de la UI en español. Rutas en español.
 - Cámara (`getUserMedia`, p. ej. escáner de códigos de barras) **solo funciona en HTTPS** → probar en las previews de Vercel, no en `http://<ip-local>`.
 

@@ -12,6 +12,12 @@
   --color-accent: #67e8f9;
   --color-accent-2: #a78bfa;
   --spacing-tabbar: 4rem;
+  /* Datos (validados con dataviz/validate_palette sobre --color-surface, modo oscuro) */
+  --color-protein: #3987e5;
+  --color-carbs: #d95926;
+  --color-fat: #199e70;
+  --color-deficit: #3987e5;
+  --color-surplus: #e66767;
 }
 
 /* Safe areas (notch / Dynamic Island / home indicator) */

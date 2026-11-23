@@ -116,6 +116,9 @@ export interface Food {
   fatG: number
   /** Ración por defecto sugerida al añadirlo. */
   servingG?: number
+  isFavorite?: boolean
+  source?: 'openfoodfacts' | 'manual'
+  createdAt?: Timestamp
 }
 
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack'
@@ -133,6 +136,8 @@ export interface MealItem {
   mealId: string
   foodId: string
   grams: number
+  /** Para ordenar los alimentos dentro de la comida. */
+  createdAt?: Timestamp
   foodName: string
   kcal: number
   proteinG: number
