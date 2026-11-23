@@ -6,6 +6,7 @@ import {
   e1rmHistory,
   exercisesForMuscle,
   lpToNext,
+  emblemState,
   muscleContributions,
   rankHistory,
   tierTicks,
@@ -81,9 +82,23 @@ describe('buildRankOverview', () => {
   })
 })
 
+describe('emblemState', () => {
+  const r = rankFromScore(50)
+  it.each([
+    [{ displayed: null }, 'locked'],
+    [{ displayed: null, inactive: true }, 'locked'],
+    [{ displayed: r }, 'ranked'],
+    [{ displayed: r, promo: { status: 'stable', tierIndex: 2 } }, 'ranked'],
+    [{ displayed: r, promo: { status: 'promo', tierIndex: 2, targetTierIndex: 3, wins: 1, losses: 0 } }, 'promo'],
+    [{ displayed: r, inactive: true, promo: { status: 'promo', tierIndex: 2, targetTierIndex: 3, wins: 0, losses: 0 } }, 'inactive'],
+  ] as const)('%o → %s', (m, state) => {
+    expect(emblemState(m)).toBe(state)
+  })
+})
+
 describe('lpToNext', () => {
   it('LP que faltan', () => {
-    expect(lpToNext(rankFromScore(37.5))).toBe(50)
+    expect(lpToNext(rankFromScore(28 + 8 / 3))).toBe(50) // Aprendiz III a mitad
     expect(lpToNext(rankFromScore(100))).toBe(0)
   })
 })
@@ -201,7 +216,7 @@ describe('rankHistory / tierTicks', () => {
   it('marcas de tiers crecientes que empiezan en 0', () => {
     const t = tierTicks()
     expect(t).toHaveLength(RANK_CONFIG.tiers.length)
-    expect(t[0]).toMatchObject({ points: 0, name: 'Hierro' })
+    expect(t[0]).toMatchObject({ points: 0, name: 'Novato' })
     for (let i = 1; i < t.length; i++) expect(t[i]!.points).toBeGreaterThan(t[i - 1]!.points)
   })
 })

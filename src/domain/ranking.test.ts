@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   DAY_MS,
   advancePromotion,
+  divisionPips,
   bestE1RMByExercise,
   combineMuscleScore,
   computeRankings,
@@ -65,10 +66,10 @@ const EM: ExerciseMuscle[] = [
 const CFG: RankConfig = {
   ...RANK_CONFIG,
   tiers: [
-    { id: 'a', name: 'A', minScore: 0, divisions: true, color: '' },
-    { id: 'b', name: 'B', minScore: 20, divisions: true, color: '' },
-    { id: 'c', name: 'C', minScore: 60, divisions: false, color: '' },
-    { id: 'd', name: 'D', minScore: 80, divisions: false, color: '' },
+    { id: 'a', name: 'A', minScore: 0, color: '' },
+    { id: 'b', name: 'B', minScore: 20, color: '' },
+    { id: 'c', name: 'C', minScore: 60, color: '' },
+    { id: 'd', name: 'D', minScore: 80, color: '' },
   ],
 }
 
@@ -329,27 +330,29 @@ describe('combineMuscleScore', () => {
 
 // ─── 5. Score → tier / división / LP ───────────────────────────────────────
 
-describe('rankFromScore (config real)', () => {
+describe('rankFromScore (config real: 6 tiers × 3 divisiones)', () => {
   it.each([
-    [0, 'Hierro', 'IV', 0],
-    [1.5, 'Hierro', 'IV', 50],
-    [2.99, 'Hierro', 'IV', 99],
-    [3, 'Hierro', 'III', 0],
-    [11.99, 'Hierro', 'I', 99],
-    [12, 'Bronce', 'IV', 0],
-    [24, 'Plata', 'IV', 0],
-    [36, 'Oro', 'IV', 0],
-    [46.5, 'Oro', 'I', 50],
-    [48, 'Platino', 'IV', 0],
-    [60, 'Esmeralda', 'IV', 0],
-    [72, 'Diamante', 'IV', 0],
-    [83.9, 'Diamante', 'I', 96],
-    [84, 'Maestro', null, 0],
-    [89, 'Maestro', null, 50],
-    [93.99, 'Maestro', null, 99],
-    [94, 'Leyenda', null, 0],
-    [97, 'Leyenda', null, 50],
-    [100, 'Leyenda', null, 100],
+    // Novato 0-28: divisiones de 9,33 puntos
+    [0, 'Novato', 'III', 0],
+    [28 / 6, 'Novato', 'III', 50],
+    [28 / 3, 'Novato', 'II', 0],
+    [27.99, 'Novato', 'I', 99],
+    // Aprendiz 28-44: divisiones de 5,33
+    [28, 'Aprendiz', 'III', 0],
+    [36, 'Aprendiz', 'II', 50],
+    // Atleta 44-60
+    [44, 'Atleta', 'III', 0],
+    [59.99, 'Atleta', 'I', 99],
+    // Veterano 60-70: divisiones de 3,33 (estrechas: subir fuerza ahí cuesta más)
+    [60, 'Veterano', 'III', 0],
+    [65, 'Veterano', 'II', 50],
+    // Élite 70-80
+    [70, 'Élite', 'III', 0],
+    [79.99, 'Élite', 'I', 99],
+    // Titán 80-100: divisiones de 6,67
+    [80, 'Titán', 'III', 0],
+    [90, 'Titán', 'II', 50],
+    [100, 'Titán', 'I', 100],
   ])('score %f → %s %s %d LP', (score, tier, division, lp) => {
     const r = rankFromScore(score)
     expect(r.tierName).toBe(tier)
@@ -358,8 +361,8 @@ describe('rankFromScore (config real)', () => {
   })
 
   it('limita scores fuera de rango', () => {
-    expect(rankFromScore(-5)).toMatchObject({ tierName: 'Hierro', division: 'IV', lp: 0, score: 0 })
-    expect(rankFromScore(150)).toMatchObject({ tierName: 'Leyenda', lp: 100, score: 100 })
+    expect(rankFromScore(-5)).toMatchObject({ tierName: 'Novato', division: 'III', lp: 0, score: 0 })
+    expect(rankFromScore(150)).toMatchObject({ tierName: 'Titán', division: 'I', lp: 100, score: 100 })
   })
 
   it('LP siempre en 0-99 salvo en el tope', () => {
@@ -372,17 +375,18 @@ describe('rankFromScore (config real)', () => {
   })
 
   it('no sufre errores de coma flotante en los bordes de división', () => {
-    expect(rankFromScore(12 + 3 * 0.1 * 10)).toMatchObject({ tierName: 'Bronce', division: 'III', lp: 0 })
-    expect(rankFromScore(0.1 + 0.2)).toMatchObject({ division: 'IV', lp: 10 })
+    expect(rankFromScore(28 + 16 / 3)).toMatchObject({ tierName: 'Aprendiz', division: 'II', lp: 0 })
+    expect(rankFromScore(60 + 10 / 3)).toMatchObject({ tierName: 'Veterano', division: 'II', lp: 0 })
+    expect(rankFromScore(0.1 + 0.2)).toMatchObject({ division: 'III', lp: 3 })
   })
 })
 
 describe('tierIndexForScore', () => {
   it('encuentra el tier', () => {
     expect(tierIndexForScore(0)).toBe(0)
-    expect(tierIndexForScore(11.999)).toBe(0)
-    expect(tierIndexForScore(12)).toBe(1)
-    expect(tierIndexForScore(100)).toBe(8)
+    expect(tierIndexForScore(27.999)).toBe(0)
+    expect(tierIndexForScore(28)).toBe(1)
+    expect(tierIndexForScore(100)).toBe(5)
     expect(tierIndexForScore(65, CFG)).toBe(2)
   })
 })
@@ -397,20 +401,25 @@ describe('ladderPoints', () => {
     }
   })
 
-  it('cada división vale 100 LP y los tiers sin divisiones 100', () => {
+  it('cada división vale 100 LP (300 por tier)', () => {
     expect(ladderPoints(rankFromScore(0))).toBe(0)
-    expect(ladderPoints(rankFromScore(3))).toBe(100) // Hierro III 0
-    expect(ladderPoints(rankFromScore(12))).toBe(400) // Bronce IV 0
-    expect(ladderPoints(rankFromScore(84))).toBe(7 * 400) // Maestro 0
-    expect(ladderPoints(rankFromScore(94))).toBe(7 * 400 + 100) // Leyenda 0
-    expect(ladderPoints(rankFromScore(100))).toBe(7 * 400 + 200)
+    expect(ladderPoints(rankFromScore(28 / 3))).toBe(100) // Novato II 0
+    expect(ladderPoints(rankFromScore(28))).toBe(300) // Aprendiz III 0
+    expect(ladderPoints(rankFromScore(80))).toBe(5 * 300) // Titán III 0
+    expect(ladderPoints(rankFromScore(100))).toBe(5 * 300 + 200 + 100)
+  })
+})
+
+describe('divisionPips', () => {
+  it('III → 1, II → 2, I → 3', () => {
+    expect(['III', 'II', 'I'].map((d) => divisionPips(d as 'III'))).toEqual([1, 2, 3])
   })
 })
 
 describe('formatRank', () => {
-  it('incluye división si la hay', () => {
-    expect(formatRank(rankFromScore(40))).toBe('Oro III')
-    expect(formatRank(rankFromScore(90))).toBe('Maestro')
+  it('nombre y división', () => {
+    expect(formatRank(rankFromScore(40))).toBe('Aprendiz I')
+    expect(formatRank(rankFromScore(90))).toBe('Titán II')
   })
 })
 
@@ -427,7 +436,7 @@ describe('globalRank', () => {
     expect(g.score).toBeCloseTo(45)
     expect(g.trainedMuscles).toBe(3)
     expect(g.weakLink).toEqual({ muscleId: 'lats', score: 30 })
-    expect(g.rank?.tierName).toBe('Oro')
+    expect(g.rank?.tierName).toBe('Atleta')
   })
 
   it('en empate el eslabón débil es el primero', () => {
@@ -530,7 +539,7 @@ describe('displayedRank', () => {
   })
 
   it('tier sin divisiones en promo → división null', () => {
-    expect(displayedRank({ status: 'promo', tierIndex: 2, targetTierIndex: 3, wins: 0, losses: 0 }, 85, CFG)).toMatchObject({ tierName: 'C', division: null, lp: 100 })
+    expect(displayedRank({ status: 'promo', tierIndex: 2, targetTierIndex: 3, wins: 0, losses: 0 }, 85, CFG)).toMatchObject({ tierName: 'C', division: 'I', lp: 100 })
   })
 
   it('score por debajo del confirmado → rango real (más bajo)', () => {
@@ -599,7 +608,7 @@ describe('computeRankings', () => {
     expect(by.chest!.effectiveSets).toBe(10)
     expect(by.chest!.consistencyScore).toBe(100)
     expect(by.chest!.score).toBeCloseTo(52)
-    expect(by.chest!.rank?.tierName).toBe('Platino')
+    expect(by.chest!.rank?.tierName).toBe('Atleta')
     expect(by.chest!.inactive).toBe(false)
 
     expect(by.triceps!.strengthScore).toBeCloseTo(50)
@@ -655,9 +664,9 @@ describe('computeRankings', () => {
     const em: ExerciseMuscle[] = [{ exerciseId: 'back_squat', muscleId: 'quads', factor: 1 }]
     const sets = Array.from({ length: 12 }, () => set('back_squat', 120, 1, daysAgo(2))) // ratio 1.5 = intermedio
     const r = computeRankings({ sets, exerciseMuscles: em, muscleIds: ['quads'], bodyweightKg: 80, sex: 'male', now: NOW })
-    // fuerza 50, constancia 100 → 60 → Esmeralda IV
+    // fuerza 50 (intermedio), constancia 100 → 60 → Veterano III: el ancla del tier
     expect(r.muscles[0]!.score).toBeCloseTo(60)
-    expect(formatRank(r.muscles[0]!.rank!)).toBe('Esmeralda IV')
+    expect(formatRank(r.muscles[0]!.rank!)).toBe('Veterano III')
   })
 })
 
@@ -667,25 +676,25 @@ describe('diffRanks', () => {
   const R = (score: number) => rankFromScore(score)
 
   it('LP ganados dentro de la misma división', () => {
-    const [d] = diffRanks({ chest: R(37) }, { chest: R(37.6) })
-    expect(d).toMatchObject({ id: 'chest', change: 'same', lpDelta: 20 })
+    const [d] = diffRanks({ chest: R(61) }, { chest: R(61.6) }) // Veterano III 30 → 48
+    expect(d).toMatchObject({ id: 'chest', change: 'same', lpDelta: 18 })
   })
 
   it('subida de división', () => {
-    const [d] = diffRanks({ chest: R(38.7) }, { chest: R(39.3) }) // Oro IV 90 → Oro III 10
-    expect(d).toMatchObject({ change: 'division_up', lpDelta: 20 })
+    const [d] = diffRanks({ chest: R(63.2) }, { chest: R(63.5) }) // Veterano III 96 → Veterano II 5
+    expect(d).toMatchObject({ change: 'division_up', lpDelta: 9 })
   })
 
   it('bajada de división', () => {
-    const [d] = diffRanks({ chest: R(39.3) }, { chest: R(38.7) })
-    expect(d).toMatchObject({ change: 'division_down', lpDelta: -20 })
+    const [d] = diffRanks({ chest: R(63.5) }, { chest: R(63.2) })
+    expect(d).toMatchObject({ change: 'division_down', lpDelta: -9 })
   })
 
   it('ascenso y descenso de tier', () => {
-    expect(diffRanks({ a: R(35) }, { a: R(37) })[0]).toMatchObject({ change: 'promoted' })
-    expect(diffRanks({ a: R(37) }, { a: R(35) })[0]).toMatchObject({ change: 'demoted' })
-    // Diamante I 99 → Maestro 0 = +1 LP
-    expect(diffRanks({ a: R(83.99) }, { a: R(84) })[0]).toMatchObject({ change: 'promoted', lpDelta: 1 })
+    expect(diffRanks({ a: R(43) }, { a: R(45) })[0]).toMatchObject({ change: 'promoted' })
+    expect(diffRanks({ a: R(45) }, { a: R(43) })[0]).toMatchObject({ change: 'demoted' })
+    // Élite I 99 → Titán III 0 = +1 LP
+    expect(diffRanks({ a: R(79.99) }, { a: R(80) })[0]).toMatchObject({ change: 'promoted', lpDelta: 1 })
   })
 
   it('nuevo y perdido valen 0 LP; omite claves sin rango en ambos', () => {

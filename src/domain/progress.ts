@@ -76,6 +76,19 @@ export function buildRankOverview(
   }
 }
 
+/**
+ * Estado visual de la insignia de un músculo (o del global): sin rango = bloqueada;
+ * inactivo pesa más que una promo (sin entrenar no avanza).
+ */
+export type EmblemState = 'locked' | 'inactive' | 'promo' | 'ranked'
+
+export function emblemState(m: { displayed: Rank | null; inactive?: boolean; promo?: PromotionState }): EmblemState {
+  if (!m.displayed) return 'locked'
+  if (m.inactive) return 'inactive'
+  if (m.promo?.status === 'promo') return 'promo'
+  return 'ranked'
+}
+
 /** LP que faltan para la siguiente división (o tier). */
 export const lpToNext = (rank: Rank) => Math.max(0, 100 - rank.lp)
 

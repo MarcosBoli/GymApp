@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import type { RankOverview } from '../../domain/progress'
+import { emblemState, type RankOverview } from '../../domain/progress'
 import { formatRank } from '../../domain/ranking'
 import { RANK_CONFIG } from '../../data/ranking'
 import { Emblem } from '../rank/Emblem'
@@ -30,7 +30,7 @@ export function GlobalRankHeader({ global }: { global: RankOverview['global'] })
       style={{ boxShadow: `0 0 48px -16px ${color}` }}
     >
       <Ring fraction={r.lp / 100} color={color} size={112} stroke={6}>
-        <Emblem tierIndex={r.tierIndex} division={r.division} size={84} />
+        <Emblem tierIndex={r.tierIndex} division={r.division} state={emblemState(global)} size={84} />
       </Ring>
       <div className="min-w-0">
         <div className="text-xs font-semibold tracking-wide text-zinc-400 uppercase">Rango global</div>

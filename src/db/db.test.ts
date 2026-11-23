@@ -106,3 +106,75 @@ describe('newId', () => {
     for (const id of ids) expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
   })
 })
+
+describe('v8: escalera de 6 tiers', () => {
+  // Rango guardado con la escalera antigua (9 tiers, divisiones IV-I)
+  const oldRank = (score: number) => ({ tierIndex: 3, tierId: 'gold', tierName: 'Oro', division: 'IV', lp: 50, score })
+  const oldSummary = {
+    ranked: true,
+    durationMs: 1,
+    sets: 1,
+    volumeKg: 1,
+    diffs: [{ id: 'chest', before: oldRank(37.5), after: oldRank(48), lpDelta: 150, change: 'promoted' }],
+    promotions: [{ id: 'chest', kind: 'started', state: { status: 'promo', tierIndex: 3, targetTierIndex: 4, wins: 0, losses: 0 } }],
+    records: [],
+  }
+  const V7_STORES = {
+    settings: 'key',
+    userProfile: 'id',
+    bodyweightLogs: 'date',
+    muscles: 'id, group',
+    exercises: 'id, name',
+    exerciseMuscles: '[exerciseId+muscleId], exerciseId, muscleId',
+    routines: 'id, createdAt',
+    routineExercises: 'id, routineId, exerciseId, [routineId+order]',
+    workouts: 'id, startedAt, routineId',
+    sets: 'id, workoutId, exerciseId, performedAt, [workoutId+order], [exerciseId+performedAt]',
+    foods: 'id, name, &barcode',
+    meals: 'id, date, [date+type]',
+    mealItems: 'id, mealId, foodId, date',
+    rankStates: 'id',
+    weeklyPlans: 'id, weekStart, [weekStart+createdAt]',
+    weekFeedback: 'weekStart',
+    chatMessages: 'id, [threadKey+createdAt]',
+  }
+
+  it('al actualizar desde la v7 recalcula los resúmenes y descarta las promos antiguas', async () => {
+    const name = `test-${++n}`
+    const v7 = new Dexie(name)
+    v7.version(7).stores(V7_STORES)
+    await v7.table('workouts').bulkAdd([
+      { id: 'w1', startedAt: 1, endedAt: 2, exerciseIds: [], summary: oldSummary },
+      { id: 'w2', startedAt: 3, exerciseIds: [] }, // en curso, sin resumen
+    ])
+    await v7.table('rankStates').put({ id: 'chest', state: { status: 'stable', tierIndex: 7 } })
+    v7.close()
+
+    const db = createDb(name)
+    opened.push(db)
+    const w1 = await db.workouts.get('w1')
+    expect(w1!.summary!.diffs[0]).toMatchObject({
+      before: { tierName: 'Aprendiz', division: 'II' },
+      after: { tierName: 'Atleta', division: 'III' },
+      change: 'promoted',
+    })
+    expect(w1!.summary!.promotions).toEqual([])
+    expect((await db.workouts.get('w2'))!.summary).toBeUndefined()
+    expect(await db.rankStates.count()).toBe(0)
+  })
+
+  it('importar un backup antiguo aplica la misma conversión; uno nuevo no se toca', async () => {
+    const db = freshDb()
+    const tables = {
+      workouts: [{ id: 'w1', startedAt: 1, endedAt: 2, exerciseIds: [], summary: oldSummary }],
+      rankStates: [{ id: 'chest', state: { status: 'stable', tierIndex: 7 } }],
+    }
+    await importAll({ app: 'gymapp', schemaVersion: 7, exportedAt: '', tables }, db)
+    expect((await db.workouts.get('w1'))!.summary!.diffs[0]!.after).toMatchObject({ tierName: 'Atleta' })
+    expect(await db.rankStates.count()).toBe(0)
+
+    const current = { workouts: [{ id: 'w1', startedAt: 1, endedAt: 2, exerciseIds: [], summary: { ...oldSummary, promotions: [] } }], rankStates: [{ id: 'chest', state: { status: 'stable', tierIndex: 2 } }] }
+    await importAll({ app: 'gymapp', schemaVersion: 8, exportedAt: '', tables: current }, db)
+    expect(await db.rankStates.get('chest')).toEqual({ id: 'chest', state: { status: 'stable', tierIndex: 2 } })
+  })
+})

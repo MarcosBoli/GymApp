@@ -1,7 +1,7 @@
 import { lazy, Suspense, useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import type { MuscleStatus, RankOverview } from '../../domain/progress'
-import { chartExerciseOptions, e1rmHistory, exercisesForMuscle, lpToNext, muscleContributions } from '../../domain/progress'
+import { chartExerciseOptions, e1rmHistory, emblemState, exercisesForMuscle, lpToNext, muscleContributions } from '../../domain/progress'
 import { formatRank } from '../../domain/ranking'
 import { formatDecimal } from '../../domain/number'
 import { calendarDaysBetween } from '../../domain/dates'
@@ -44,7 +44,7 @@ function Body({ muscle, overview, inputs }: { muscle: MuscleStatus; overview: Ra
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-4">
-        <Emblem tierIndex={r?.tierIndex ?? null} division={r?.division} size={96} />
+        <Emblem tierIndex={r?.tierIndex ?? null} division={r?.division} state={emblemState(muscle)} size={96} />
         <div className="min-w-0 flex-1">
           <div className="text-2xl font-bold">{r ? formatRank(r) : 'Sin rango'}</div>
           {r && (

@@ -7,8 +7,8 @@ import type { CoachContext, PlanRequest } from '../../src/domain/planSchema.js'
 const context: CoachContext = {
   weekStart: '2026-11-23',
   profile: { sex: 'male', age: 31, heightCm: 180, weightKg: 80, trainingGoal: 'hypertrophy', daysPerWeek: 2, sessionMinutes: 60, equipment: ['barbell'], limitations: 'hombro derecho' },
-  muscles: [{ id: 'chest', name: 'Pecho', rank: 'Oro II', lp: 40, e1rmTrend4wPct: 2.5, weeklySets: 9, daysSinceLast: 2 }],
-  weakLink: { id: 'chest', name: 'Pecho', rank: 'Oro II' },
+  muscles: [{ id: 'chest', name: 'Pecho', rank: 'Atleta II', lp: 40, e1rmTrend4wPct: 2.5, weeklySets: 9, daysSinceLast: 2 }],
+  weakLink: { id: 'chest', name: 'Pecho', rank: 'Atleta II' },
   lastWeek: { planned: 2, completed: 2, adherence: 1, rating: 'ok' },
 }
 const catalog = [

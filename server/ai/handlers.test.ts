@@ -167,7 +167,7 @@ describe('llamadas a Claude', () => {
   it('chat: streaming NDJSON con CHAT_MODEL, effort low, sin fallbacks en Haiku, contexto como bloque de sistema', async () => {
     const { client, create } = fakeClient()
     const h = createAiHandlers({ env: ENV, makeClient: () => client })
-    const res = await h.chat(post('/api/chat', { ...chatBody, context: 'Pecho: Oro II' }))
+    const res = await h.chat(post('/api/chat', { ...chatBody, context: 'Pecho: Atleta II' }))
     expect(res.status).toBe(200)
     expect(res.headers.get('content-type')).toContain('application/x-ndjson')
     expect(res.headers.get('cache-control')).toBe('no-store')
@@ -179,7 +179,7 @@ describe('llamadas a Claude', () => {
     const [params, options] = create.mock.calls[0] as unknown as [Record<string, any>, Record<string, any>]
     expect(params).toMatchObject({ model: 'claude-haiku-5-5', stream: true, max_tokens: 1500, output_config: { effort: 'low' }, messages: [{ role: 'user', content: '¿Cuántas series hago?' }] })
     expect(params.system[0].text).toContain('fisioterapeuta')
-    expect(params.system[1].text).toContain('Pecho: Oro II')
+    expect(params.system[1].text).toContain('Pecho: Atleta II')
     expect(params).not.toHaveProperty('fallbacks')
     expect(params).not.toHaveProperty('temperature')
     expect(options).toMatchObject({ timeout: 20_000, maxRetries: 1 })

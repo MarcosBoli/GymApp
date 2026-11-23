@@ -40,7 +40,7 @@ export default defineConfig({
       },
       workbox: {
         // Offline completo: precache de todo el bundle y fallback SPA
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest,woff,woff2,json}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,webp,ico,webmanifest,woff,woff2,json}'],
         navigateFallback: '/index.html',
         // Las funciones de IA nunca se sirven desde la caché del service worker
         navigateFallbackDenylist: [/^\/api\//],
