@@ -2,7 +2,9 @@ import { AI_MAX_BODY_BYTES } from '../../src/domain/aiErrors.js'
 import { callClaude, createAnthropicClient, mapAnthropicError, type AiClient } from './claude.js'
 import { readAiConfig, type AiConfig, type Env } from './env.js'
 import { errorResponse, HttpError, json, readJsonBody, secretMatches } from './http.js'
-import { validateChatRequest, validatePlanRequest } from './validate.js'
+import { validateChatRequest } from './validate.js'
+import { generatePlan } from './plan.js'
+import { PlanRequestSchema } from '../../src/domain/planSchema.js'
 
 export const SECRET_HEADER = 'x-app-secret'
 
@@ -10,20 +12,20 @@ const CHAT_SYSTEM = `Eres el asistente de GymApp, una app de entrenamiento de fu
 Responde en español de España, de forma breve, práctica y segura. Si te dan datos del usuario, úsalos.
 No des consejo médico; ante dolor o lesión, recomienda consultar a un profesional.`
 
-const PLAN_SYSTEM = `Eres un entrenador personal experto en fuerza e hipertrofia. Diseñas planes de entrenamiento
-realistas y progresivos, adaptados a los datos y rangos del usuario cuando se proporcionan.
-Responde en español de España. Sé concreto: días, ejercicios, series, repeticiones y progresión.`
-
 export interface HandlerDeps {
   env: Env
   makeClient?: (apiKey: string) => AiClient
+  now?: () => number
 }
+
+/** Presupuesto de /api/plan: un poco menos que el maxDuration (60 s) de la función. */
+export const PLAN_BUDGET_MS = 57_000
 
 /**
  * Handlers de las funciones /api. Orden de comprobaciones: método → configuración →
  * secreto (401) → tamaño (413) → JSON (400) → validación (400) → Claude.
  */
-export function createAiHandlers({ env, makeClient = createAnthropicClient }: HandlerDeps) {
+export function createAiHandlers({ env, makeClient = createAnthropicClient, now = Date.now }: HandlerDeps) {
   async function guarded(request: Request, method: string, run: (config: AiConfig, client: AiClient) => Promise<Response>) {
     if (request.method !== method) return errorResponse('method_not_allowed', 405)
     const cfg = readAiConfig(env)
@@ -65,19 +67,13 @@ export function createAiHandlers({ env, makeClient = createAnthropicClient }: Ha
         return json(result)
       }),
 
+    /** Rutina semanal: contexto del usuario + catálogo → plan validado (zod + catálogo, 1 reintento). */
     plan: (request: Request) =>
       guarded(request, 'POST', async (config, client) => {
-        const body = validatePlanRequest(await readJsonBody(request, AI_MAX_BODY_BYTES))
-        const result = await callClaude(client, {
-          model: config.planModel,
-          system: PLAN_SYSTEM,
-          context: body.context,
-          messages: [{ role: 'user', content: body.prompt }],
-          maxTokens: 8000,
-          effort: 'medium',
-          timeoutMs: 55_000,
-          maxRetries: 0,
-        })
+        const started = now()
+        const body = PlanRequestSchema.safeParse(await readJsonBody(request, AI_MAX_BODY_BYTES))
+        if (!body.success) throw new HttpError('invalid_request', 400)
+        const result = await generatePlan(client, config.planModel, body.data, { deadline: started + PLAN_BUDGET_MS, now })
         return json(result)
       }),
   }

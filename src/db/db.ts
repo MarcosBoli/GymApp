@@ -8,6 +8,8 @@ import type {
   MealItem,
   Muscle,
   RankStateRow,
+  WeekFeedback,
+  WeeklyPlan,
   Routine,
   RoutineExercise,
   Setting,
@@ -33,6 +35,8 @@ export type GymDB = Dexie & {
   meals: EntityTable<Meal, 'id'>
   mealItems: EntityTable<MealItem, 'id'>
   rankStates: EntityTable<RankStateRow, 'id'>
+  weeklyPlans: EntityTable<WeeklyPlan, 'id'>
+  weekFeedback: EntityTable<WeekFeedback, 'weekStart'>
 }
 
 export const DB_NAME = 'gymapp'
@@ -105,6 +109,12 @@ export function createDb(name = DB_NAME): GymDB {
       mealItems: 'id, mealId, foodId, date',
     })
     .upgrade(fillMealItemDates)
+
+  // v6: rutina semanal con IA (historial de versiones por semana) y valoración de cada semana
+  db.version(6).stores({
+    weeklyPlans: 'id, weekStart, [weekStart+createdAt]',
+    weekFeedback: 'weekStart',
+  })
 
   // BD nueva (primer arranque): Dexie dispara populate una única vez
   db.on('populate', seedCatalog)

@@ -32,15 +32,33 @@ export async function getLastFinishedWorkout(db: GymDB = defaultDb): Promise<Wor
   return db.workouts.orderBy('startedAt').reverse().filter((w) => w.endedAt !== undefined).first()
 }
 
-/** Empieza un entreno vacío o desde una rutina. Si ya hay uno en curso, lo devuelve. */
-export async function startWorkout(now: number, routineId?: string, db: GymDB = defaultDb): Promise<Workout> {
-  return db.transaction('rw', [db.workouts, db.routineExercises, db.settings], async () => {
+/**
+ * Empieza un entreno vacío, desde una rutina o desde un día del plan semanal.
+ * Si ya hay uno en curso, lo devuelve.
+ */
+export async function startWorkout(
+  now: number,
+  routineId?: string,
+  db: GymDB = defaultDb,
+  fromPlan?: { planId: string; dayIndex: number },
+): Promise<Workout> {
+  return db.transaction('rw', [db.workouts, db.routineExercises, db.settings, db.weeklyPlans], async () => {
     const active = await getActiveWorkout(db)
     if (active) return active
-    const exerciseIds = routineId
-      ? (await db.routineExercises.where('[routineId+order]').between([routineId, Dexie.minKey], [routineId, Dexie.maxKey]).toArray()).map((re) => re.exerciseId)
-      : []
-    const workout: Workout = { id: newId(), routineId, startedAt: now, exerciseIds }
+    let exerciseIds: string[] = []
+    if (fromPlan) {
+      const plan = await db.weeklyPlans.get(fromPlan.planId)
+      exerciseIds = plan?.days.find((d) => d.dayIndex === fromPlan.dayIndex)?.exercises.map((e) => e.exerciseId) ?? []
+    } else if (routineId) {
+      exerciseIds = (await db.routineExercises.where('[routineId+order]').between([routineId, Dexie.minKey], [routineId, Dexie.maxKey]).toArray()).map((re) => re.exerciseId)
+    }
+    const workout: Workout = {
+      id: newId(),
+      routineId,
+      startedAt: now,
+      exerciseIds: [...new Set(exerciseIds)],
+      ...(fromPlan ? { planId: fromPlan.planId, planDayIndex: fromPlan.dayIndex } : {}),
+    }
     await db.workouts.add(workout)
     await setActivePointer(db, workout.id)
     return workout

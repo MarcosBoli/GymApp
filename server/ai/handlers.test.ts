@@ -4,7 +4,7 @@ import { createAiHandlers, SECRET_HEADER } from './handlers.js'
 import { mapAnthropicError, supportsServerFallback, type AiClient } from './claude.js'
 import { readAiConfig } from './env.js'
 import { secretMatches } from './http.js'
-import { validateChatRequest, validatePlanRequest, LIMITS } from './validate.js'
+import { validateChatRequest, LIMITS } from './validate.js'
 import { AI_ERROR_MESSAGES, AI_MAX_BODY_BYTES, type AiErrorCode } from '../../src/domain/aiErrors.js'
 
 const ENV = { ANTHROPIC_API_KEY: 'sk-test', APP_SECRET: 's3cr3t' }
@@ -132,12 +132,6 @@ describe('validación', () => {
     const messages = Array.from({ length: 9 }, (_, i) => ({ role: i % 2 ? 'assistant' : 'user', content: 'x'.repeat(4000) }))
     expect(() => validateChatRequest({ messages })).toThrowError(expect.objectContaining({ code: 'payload_too_large' }))
   })
-
-  it('plan', () => {
-    expect(validatePlanRequest({ prompt: ' 4 días ', context: 'Oro II' })).toEqual({ prompt: '4 días', context: 'Oro II' })
-    expect(() => validatePlanRequest({ prompt: '' })).toThrow()
-    expect(() => validatePlanRequest({ prompt: 'x'.repeat(LIMITS.promptChars + 1) })).toThrow()
-  })
 })
 
 describe('llamadas a Claude', () => {
@@ -154,16 +148,6 @@ describe('llamadas a Claude', () => {
     expect(params).not.toHaveProperty('fallbacks')
     expect(params).not.toHaveProperty('temperature')
     expect(options).toEqual({ timeout: 25_000, maxRetries: 1 })
-  })
-
-  it('plan: PLAN_MODEL (Sonnet 5.5 por defecto) con fallbacks del servidor', async () => {
-    const { client, create } = fakeClient({ model: 'claude-sonnet-5-5', stop_reason: 'max_tokens' })
-    const h = createAiHandlers({ env: ENV, makeClient: () => client })
-    const r = await call(h.plan, post('/api/plan', { prompt: 'Plan de 4 días' }))
-    expect(r.body.truncated).toBe(true)
-    const [params, options] = create.mock.calls[0] as unknown as [Record<string, any>, Record<string, any>]
-    expect(params).toMatchObject({ model: 'claude-sonnet-5-5', max_tokens: 8000, output_config: { effort: 'medium' }, betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' })
-    expect(options).toEqual({ timeout: 55_000, maxRetries: 0 })
   })
 
   it('modelo configurado por entorno', async () => {

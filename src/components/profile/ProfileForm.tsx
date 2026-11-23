@@ -1,6 +1,18 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { ACTIVITY_LEVELS, GOALS, validateProfileForm, type ProfileErrors, type ProfileForm as Form } from '../../domain/profile'
+import {
+  ACTIVITY_LEVELS,
+  DAYS_OPTIONS,
+  EQUIPMENT_LABELS,
+  GOALS,
+  LIMITATIONS_MAX,
+  MINUTES_OPTIONS,
+  TRAINING_GOAL_LABELS,
+  validateProfileForm,
+  type ProfileErrors,
+  type ProfileForm as Form,
+} from '../../domain/profile'
+import { PLAN_EQUIPMENT, TRAINING_GOALS } from '../../domain/planSchema'
 import { formatDecimal } from '../../domain/number'
 import { toDateKey } from '../../domain/dates'
 import { db } from '../../db/db'
@@ -17,6 +29,11 @@ export function ProfileForm() {
       weightKg: weight !== undefined ? formatDecimal(weight) : '',
       activityLevel: p?.activityLevel ?? 'moderate',
       goal: p?.goal ?? 'maintain',
+      trainingGoal: p?.trainingGoal ?? 'hypertrophy',
+      daysPerWeek: p?.daysPerWeek ?? 4,
+      sessionMinutes: p?.sessionMinutes ?? 60,
+      equipment: p?.equipment ?? [...PLAN_EQUIPMENT],
+      limitations: p?.limitations ?? '',
     }
   })
   if (!initial) return null
@@ -97,10 +114,79 @@ function FormBody({ initial }: { initial: Form }) {
         </select>
       </Field>
 
+      <h3 className="pt-2 text-base font-semibold">Entrenamiento</h3>
+      <p className="-mt-2 text-sm text-zinc-500">La IA usa estos datos para diseñar tu rutina semanal.</p>
+
+      <Field label="Objetivo" error={errors.trainingGoal} group>
+        <Segmented options={TRAINING_GOALS.map((g) => ({ value: g, label: TRAINING_GOAL_LABELS[g] }))} value={form.trainingGoal} onChange={(v) => set('trainingGoal', v)} />
+      </Field>
+
+      <Field label="Días por semana" error={errors.daysPerWeek} group>
+        <Segmented options={DAYS_OPTIONS.map((d) => ({ value: d, label: String(d) }))} value={form.daysPerWeek} onChange={(v) => set('daysPerWeek', v)} />
+      </Field>
+
+      <Field label="Minutos por sesión" error={errors.sessionMinutes}>
+        <select className={input} value={form.sessionMinutes} onChange={(e) => set('sessionMinutes', Number(e.target.value))}>
+          {MINUTES_OPTIONS.map((m) => (
+            <option key={m} value={m}>
+              {m} min
+            </option>
+          ))}
+        </select>
+      </Field>
+
+      <Field label="Material disponible" error={errors.equipment} group>
+        <div className="flex flex-wrap gap-2">
+          {PLAN_EQUIPMENT.map((eq) => {
+            const on = form.equipment.includes(eq)
+            return (
+              <button
+                key={eq}
+                type="button"
+                aria-pressed={on}
+                onClick={() => set('equipment', on ? form.equipment.filter((x) => x !== eq) : [...form.equipment, eq])}
+                className={`h-10 rounded-full border px-4 text-sm font-medium ${on ? 'border-accent bg-accent/10 text-accent' : 'border-border text-zinc-400'}`}
+              >
+                {on ? '✓ ' : ''}
+                {EQUIPMENT_LABELS[eq]}
+              </button>
+            )
+          })}
+        </div>
+      </Field>
+
+      <Field label="Lesiones o limitaciones (opcional)" error={errors.limitations}>
+        <textarea
+          className={`${input} h-24 py-2`}
+          maxLength={LIMITATIONS_MAX}
+          value={form.limitations}
+          onChange={(e) => set('limitations', e.target.value)}
+          placeholder="Ej.: molestia en el hombro derecho al press por encima de la cabeza"
+        />
+      </Field>
+
       <button type="submit" className="h-12 w-full rounded-xl bg-accent font-semibold text-bg active:scale-[0.98]">
         {saved ? 'Guardado ✓' : 'Guardar'}
       </button>
     </form>
+  )
+}
+
+function Segmented<T extends string | number>({ options, value, onChange }: { options: { value: T; label: string }[]; value: T; onChange: (v: T) => void }) {
+  return (
+    <div className="flex gap-2">
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          aria-pressed={value === o.value}
+          onClick={() => onChange(o.value)}
+          className={`h-12 flex-1 rounded-xl border text-sm font-medium ${value === o.value ? 'border-accent bg-accent/10 text-accent' : 'border-border text-zinc-400'}`}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
   )
 }
 

@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { RouterProvider } from 'react-router'
+import { MotionConfig } from 'framer-motion'
 import { registerSW } from 'virtual:pwa-register'
 import { router } from './router'
 import { requestPersistentStorage } from './db/persist'
@@ -26,6 +27,9 @@ void requestPersistentStorage()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    {/* Respeta "Reducir movimiento" de iOS: sin desplazamientos ni escalados animados */}
+    <MotionConfig reducedMotion="user">
+      <RouterProvider router={router} />
+    </MotionConfig>
   </StrictMode>,
 )

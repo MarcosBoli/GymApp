@@ -1,10 +1,16 @@
+import { lazy, Suspense } from 'react'
 import { Outlet, ScrollRestoration, useLocation } from 'react-router'
 import { motion } from 'framer-motion'
 import { BottomTabBar } from './BottomTabBar'
 import { RestTimerBar } from '../train/RestTimerBar'
+import { usePlanUi } from '../../store/planUi'
+
+// La hoja de generar rutina solo se descarga cuando se abre
+const GeneratePlanSheet = lazy(() => import('../plan/GeneratePlanSheet'))
 
 export function AppShell() {
   const { pathname } = useLocation()
+  const generatorOpen = usePlanUi((s) => s.generatorOpen)
 
   return (
     <div className="min-h-dvh pt-safe pl-safe pr-safe">
@@ -23,6 +29,11 @@ export function AppShell() {
           <Outlet />
         </motion.div>
       </main>
+      {generatorOpen && (
+        <Suspense fallback={null}>
+          <GeneratePlanSheet />
+        </Suspense>
+      )}
       <RestTimerBar />
       <BottomTabBar />
     </div>

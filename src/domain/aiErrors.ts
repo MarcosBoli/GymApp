@@ -26,6 +26,7 @@ export const AI_ERROR_MESSAGES = {
   ai_unavailable: 'El servicio de IA está saturado o caído. Inténtalo en unos minutos.',
   ai_unreachable: 'El servidor no pudo conectar con la IA. Inténtalo de nuevo.',
   refused: 'La IA no ha querido responder a esta petición.',
+  invalid_plan: 'La IA devolvió un plan no válido dos veces. Vuelve a intentarlo.',
   timeout: 'La IA ha tardado demasiado en responder. Inténtalo de nuevo (o pide algo más corto).',
   // Cliente
   offline: 'Sin conexión. La IA necesita internet; el resto de la app funciona offline.',

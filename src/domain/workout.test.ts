@@ -9,6 +9,7 @@ import {
   searchExercises,
   setLabels,
   suggestNextSet,
+  suggestPlannedSet,
   workoutStats,
 } from './workout'
 
@@ -212,5 +213,18 @@ describe('setLabels', () => {
   it('numera solo las series de trabajo', () => {
     expect(setLabels([w(20, 10, true), w(60, 5), w(40, 5, true), w(60, 5)])).toEqual(['C', '1', 'C', '2'])
     expect(setLabels([])).toEqual([])
+  })
+})
+
+describe('suggestPlannedSet', () => {
+  const planned = { weightKg: 72.5, repsMin: 8, repsMax: 10 }
+  it('primera serie del día: peso calculado por la app y reps centrales', () => {
+    expect(suggestPlannedSet(planned, [w(70, 8)], [])).toEqual({ weightKg: 72.5, reps: 9 })
+    expect(suggestPlannedSet(planned, [], [w(40, 10, true)])).toEqual({ weightKg: 72.5, reps: 9 })
+  })
+  it('después manda lo hecho hoy; sin peso calculado, la última sesión', () => {
+    expect(suggestPlannedSet(planned, [], [w(75, 8)])).toEqual({ weightKg: 75, reps: 8 })
+    expect(suggestPlannedSet({ ...planned, weightKg: null }, [w(70, 8)], [])).toEqual({ weightKg: 70, reps: 8 })
+    expect(suggestPlannedSet(undefined, [], [])).toBeNull()
   })
 })

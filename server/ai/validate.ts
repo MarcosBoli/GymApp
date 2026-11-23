@@ -5,7 +5,6 @@ export const LIMITS = {
   messageChars: 4000,
   chatTotalChars: 30_000,
   contextChars: 16_000,
-  promptChars: 4000,
 } as const
 
 export interface ChatTurn {
@@ -15,11 +14,6 @@ export interface ChatTurn {
 
 export interface ChatRequest {
   messages: ChatTurn[]
-  context?: string
-}
-
-export interface PlanRequest {
-  prompt: string
   context?: string
 }
 
@@ -48,11 +42,4 @@ export function validateChatRequest(body: unknown): ChatRequest {
   if (total > LIMITS.chatTotalChars) throw new HttpError('payload_too_large', 413)
   if (turns[0]!.role !== 'user' || turns.at(-1)!.role !== 'user') throw invalid()
   return { messages: turns, context: optionalContext(body.context) }
-}
-
-export function validatePlanRequest(body: unknown): PlanRequest {
-  if (!isObject(body) || typeof body.prompt !== 'string') throw invalid()
-  const prompt = body.prompt.trim()
-  if (!prompt || prompt.length > LIMITS.promptChars) throw invalid()
-  return { prompt, context: optionalContext(body.context) }
 }

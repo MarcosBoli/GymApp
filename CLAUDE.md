@@ -26,7 +26,7 @@ src/
   data/        Datos estáticos: músculos (muscles.ts), ejercicios con su mapeo a músculos (exercises.ts)…
   lib/         Utilidades de navegador sin lógica de negocio (guardar archivos, sonido, cliente de /api…)
   store/       Stores Zustand de UI efímera (restTimer persistido en localStorage, trainUi)
-  router.tsx   Rutas (/, /entrenar, /comida, /progreso, /perfil), cada página con `lazy` (chunk propio)
+  router.tsx   Rutas (/, /entrenar, /entrenar/plan, /comida, /progreso, /perfil), cada página con `lazy` (chunk propio)
   main.tsx     Arranque: registro del SW, storage.persist(), render
   index.css    Tailwind + tema + utilidades safe-area (pt-safe, pb-safe, pl-safe, pr-safe)
 public/        Iconos PWA/iOS (generados desde public/logo.svg)
@@ -91,6 +91,13 @@ server/ai/     Lógica de las funciones: secreto, límites, validación, llamada
   - Cuerpo ≤ `AI_MAX_BODY_BYTES` (64 KB, comprobado en app y servidor), validación de forma y tamaños; `maxDuration` 60 s (vercel.json) con timeouts del SDK por debajo.
   - Errores: clases tipadas del SDK → códigos de `aiErrors.ts` (sin saldo, límite de gasto, timeout, JSON inválido…) con mensaje en español; el cliente también traduce respuestas que no son nuestras (504 de Vercel, sin conexión, /api no desplegada).
   - Sonnet 5.5 (y otros modelos 5.x compatibles) con `fallbacks: "default"` del servidor ante negativas; `stop_reason: "refusal"` → error `refused`.
+- **Rutina semanal con IA** (`src/domain/coachContext.ts`, `src/domain/plan.ts`, `src/domain/planSchema.ts`, `src/db/plans.ts`, `src/db/planGeneration.ts`, `server/ai/plan.ts`):
+  - `buildCoachContext` (puro): perfil + preferencias (objetivo fuerza/hipertrofia/recomposición, días, minutos, material, limitaciones), por músculo rango/LP/tendencia de e1RM 4 sem/series semanales/días desde el último, eslabón débil y semana anterior (adherencia + valoración). Las preferencias se editan en Perfil › Entrenamiento.
+  - `planSchema.ts` (zod, sin imports relativos: lo usa también el servidor) define petición, salida (`exerciseId` como enum del catálogo) y `planErrors` (reglas extra). `/api/plan` usa salida estructurada (`betaZodOutputFormat` en `create`), valida con zod y reintenta UNA vez con los errores si queda tiempo dentro de los 60 s.
+  - El modelo nunca da pesos: `suggestWeight` (Epley inverso con reps centrales + RIR del RPE, redondeo por material) a partir del mejor e1RM de 90 días.
+  - Dexie v6: `weeklyPlans` (versiones por semana; regenerar/editar/restaurar = versión nueva, la anterior queda `superseded`) y `weekFeedback`. Los entrenos guardan `planId`/`planDayIndex`.
+  - "Día que toca" (`dayToTrain`): el de hoy si está pendiente, si no el primer pendiente. Valoración: el domingo de la semana con plan y, al generar, la semana anterior si tuvo actividad (`weekToRate`).
+- `MotionConfig reducedMotion="user"`: con "Reducir movimiento" de iOS no hay desplazamientos animados.
 - Textos de la UI en español. Rutas en español.
 - Cámara (`getUserMedia`, p. ej. escáner de códigos de barras) **solo funciona en HTTPS** → probar en las previews de Vercel, no en `http://<ip-local>`.
 

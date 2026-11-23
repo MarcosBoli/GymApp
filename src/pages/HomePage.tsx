@@ -13,6 +13,7 @@ import { WeakLinkCard } from '../components/home/WeakLinkCard'
 import { BodyMap } from '../components/home/BodyMap'
 import { MuscleList } from '../components/home/MuscleList'
 import { MuscleSheet } from '../components/rank/MuscleSheet'
+import { WeekPlanCard } from '../components/plan/WeekPlanCard'
 import { PageHeader } from '../components/layout/PageHeader'
 import { Ring } from '../components/home/Ring'
 import { WeightQuickLog } from '../components/home/WeightQuickLog'
@@ -39,6 +40,7 @@ export default function HomePage() {
     <>
       <PageHeader title="Inicio" />
       <div className="space-y-4 px-4">
+        <WeekPlanCard variant="home" />
         {!ranks ? (
           <>
             <Placeholder className="h-36" />
