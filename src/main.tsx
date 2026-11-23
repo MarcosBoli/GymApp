@@ -9,6 +9,9 @@ import './index.css'
 // Service worker con autoUpdate: se actualiza y recarga solo al publicar una versión nueva
 registerSW({ immediate: true })
 
+// Si un chunk de una versión anterior ya no existe (tras una actualización), recargar
+window.addEventListener('vite:preloadError', () => window.location.reload())
+
 // Pide almacenamiento persistente para que iOS/Safari no purgue IndexedDB
 void requestPersistentStorage()
 

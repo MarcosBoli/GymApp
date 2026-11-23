@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Link } from 'react-router'
 import { adaptiveStatusText, energyOverview, progressOf, type AdaptiveTdee } from '../domain/energy'
@@ -7,10 +8,12 @@ import { db } from '../db/db'
 import { getEnergyInputs } from '../db/food'
 import { PageHeader } from '../components/layout/PageHeader'
 import { Ring } from '../components/home/Ring'
-import { WeeklyBalanceChart } from '../components/home/WeeklyBalanceChart'
 import { WeightQuickLog } from '../components/home/WeightQuickLog'
 import { MACROS } from '../components/food/MacroLegend'
 import { DATA_COLORS } from '../components/dataColors'
+
+// Recharts es lo más pesado de Inicio: la gráfica llega después de los números
+const WeeklyBalanceChart = lazy(() => import('../components/home/WeeklyBalanceChart'))
 
 const fmt = (n: number) => formatDecimal(Math.round(n))
 const signed = (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${fmt(Math.abs(n))}`
@@ -62,7 +65,9 @@ export default function HomePage() {
                 )}
               </div>
               <p className="mb-2 text-xs text-zinc-500">Ingesta − gasto de cada día completo. Hoy, en curso, no cuenta.</p>
-              <WeeklyBalanceChart week={overview.week} tdee={overview.tdee} />
+              <Suspense fallback={<div className="h-40" />}>
+                <WeeklyBalanceChart week={overview.week} tdee={overview.tdee} />
+              </Suspense>
             </section>
           </>
         )}

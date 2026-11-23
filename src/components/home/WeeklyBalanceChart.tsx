@@ -9,7 +9,7 @@ const longDay = new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeri
 const signed = (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${formatDecimal(Math.abs(Math.round(n)))}`
 
 /** Barras divergentes: ingesta − TDEE por día. Azul = déficit, rojo = superávit. Hoy solo en el tooltip. */
-export function WeeklyBalanceChart({ week, tdee }: { week: WeeklyBalance; tdee: number }) {
+export default function WeeklyBalanceChart({ week, tdee }: { week: WeeklyBalance; tdee: number }) {
   const data = week.days.map((d) => ({
     ...d,
     label: d.partial ? 'Hoy' : weekday.format(fromDateKey(d.date)).replace('.', ''),
