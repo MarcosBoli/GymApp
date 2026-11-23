@@ -6,6 +6,8 @@ import { errorResponse, HttpError, json, readJsonBody, secretMatches } from './h
 import { validateChatRequest } from './validate.js'
 import { generatePlan } from './plan.js'
 import { PlanRequestSchema } from '../../src/domain/planSchema.js'
+import { FOOD_PHOTO_MAX_BODY_BYTES, FoodPhotoRequestSchema } from '../../src/domain/foodPhotoSchema.js'
+import { estimateFoodPhoto } from './foodPhoto.js'
 
 export const SECRET_HEADER = 'x-app-secret'
 
@@ -17,6 +19,8 @@ export interface HandlerDeps {
 
 /** Presupuesto de /api/plan: un poco menos que el maxDuration (60 s) de la función. */
 export const PLAN_BUDGET_MS = 57_000
+/** Presupuesto de /api/food-photo (un intento + reintento si queda tiempo). */
+export const FOOD_BUDGET_MS = 57_000
 /** Tiempo máximo de una respuesta del chat en streaming (luego se corta como truncada). */
 export const CHAT_BUDGET_MS = 55_000
 
@@ -46,8 +50,8 @@ export function createAiHandlers({ env, makeClient = createAnthropicClient, now 
     /** Comprueba secreto, configuración y que la API key ve los dos modelos (sin gastar tokens). */
     health: (request: Request) =>
       guarded(request, 'GET', async (config, client) => {
-        for (const model of [config.planModel, config.chatModel]) await client.models.retrieve(model, {}, { timeout: 8000, maxRetries: 0 })
-        return json({ ok: true, models: { plan: config.planModel, chat: config.chatModel } })
+        for (const model of new Set([config.planModel, config.chatModel, config.foodModel])) await client.models.retrieve(model, {}, { timeout: 8000, maxRetries: 0 })
+        return json({ ok: true, models: { plan: config.planModel, chat: config.chatModel, food: config.foodModel } })
       }),
 
     /** Chat del coach: respuesta en streaming (NDJSON) de CHAT_MODEL. */
@@ -65,6 +69,16 @@ export function createAiHandlers({ env, makeClient = createAnthropicClient, now 
         const body = PlanRequestSchema.safeParse(await readJsonBody(request, AI_MAX_BODY_BYTES))
         if (!body.success) throw new HttpError('invalid_request', 400)
         const result = await generatePlan(client, config.planModel, body.data, { deadline: started + PLAN_BUDGET_MS, now })
+        return json(result)
+      }),
+
+    /** Foto de comida → estimación nutricional (tool use validado con zod, 1 reintento). */
+    foodPhoto: (request: Request) =>
+      guarded(request, 'POST', async (config, client) => {
+        const started = now()
+        const body = FoodPhotoRequestSchema.safeParse(await readJsonBody(request, FOOD_PHOTO_MAX_BODY_BYTES))
+        if (!body.success) throw new HttpError('invalid_request', 400)
+        const result = await estimateFoodPhoto(client, config.foodModel, body.data, { deadline: started + FOOD_BUDGET_MS, now })
         return json(result)
       }),
   }

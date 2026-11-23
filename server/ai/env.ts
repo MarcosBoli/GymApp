@@ -2,12 +2,14 @@
 
 export const DEFAULT_PLAN_MODEL = 'claude-sonnet-5-5'
 export const DEFAULT_CHAT_MODEL = 'claude-haiku-5-5'
+export const DEFAULT_FOOD_MODEL = 'claude-sonnet-5-5'
 
 export interface AiConfig {
   apiKey: string
   appSecret: string
   planModel: string
   chatModel: string
+  foodModel: string
 }
 
 export type Env = Record<string, string | undefined>
@@ -24,6 +26,7 @@ export function readAiConfig(env: Env): { ok: true; config: AiConfig } | { ok: f
       appSecret: appSecret!,
       planModel: env.PLAN_MODEL?.trim() || DEFAULT_PLAN_MODEL,
       chatModel: env.CHAT_MODEL?.trim() || DEFAULT_CHAT_MODEL,
+      foodModel: env.FOOD_MODEL?.trim() || DEFAULT_FOOD_MODEL,
     },
   }
 }

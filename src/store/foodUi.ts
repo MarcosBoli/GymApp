@@ -5,6 +5,7 @@ import type { FoodDraft } from '../domain/food'
 export type FoodSheet =
   | { kind: 'add'; mealType: MealType }
   | { kind: 'scan'; mealType: MealType }
+  | { kind: 'photo'; mealType: MealType }
   | { kind: 'quantity'; mealType: MealType; foodId: string; itemId?: string; grams?: number }
   | { kind: 'form'; mealType: MealType; draft?: FoodDraft; foodId?: string; notice?: string }
 

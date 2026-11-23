@@ -10,7 +10,7 @@ export const AI_ERROR_MESSAGES = {
   // Petición / configuración
   missing_secret: 'Falta el secreto de la app. Guárdalo en Perfil › Asistente IA.',
   unauthorized: 'El secreto de la app no es correcto. Revísalo en Perfil › Asistente IA.',
-  payload_too_large: 'La petición es demasiado grande. Prueba con menos texto o menos historial.',
+  payload_too_large: 'La petición es demasiado grande. Prueba con menos texto, menos historial o una foto más pequeña.',
   invalid_json: 'La petición no es un JSON válido.',
   invalid_request: 'La petición no es válida.',
   method_not_allowed: 'Método no permitido.',
@@ -21,12 +21,13 @@ export const AI_ERROR_MESSAGES = {
   spend_limit: 'Se ha alcanzado el límite de gasto de la cuenta de Anthropic. Súbelo en la consola o espera al próximo periodo.',
   rate_limited: 'Demasiadas peticiones seguidas. Espera un momento y vuelve a intentarlo.',
   ai_auth: 'La API key de Anthropic del servidor no es válida o no tiene permisos.',
-  model_not_found: 'El modelo configurado (PLAN_MODEL / CHAT_MODEL) no existe o la cuenta no tiene acceso.',
+  model_not_found: 'El modelo configurado (PLAN_MODEL / CHAT_MODEL / FOOD_MODEL) no existe o la cuenta no tiene acceso.',
   ai_bad_request: 'La IA ha rechazado la petición por su formato o tamaño.',
   ai_unavailable: 'El servicio de IA está saturado o caído. Inténtalo en unos minutos.',
   ai_unreachable: 'El servidor no pudo conectar con la IA. Inténtalo de nuevo.',
   refused: 'La IA no ha querido responder a esta petición.',
   invalid_plan: 'La IA devolvió un plan no válido dos veces. Vuelve a intentarlo.',
+  invalid_estimate: 'La IA no ha devuelto una estimación válida. Prueba otra vez o con otra foto.',
   timeout: 'La IA ha tardado demasiado en responder. Inténtalo de nuevo (o pide algo más corto).',
   // Cliente
   offline: 'Sin conexión. La IA necesita internet; el resto de la app funciona offline.',

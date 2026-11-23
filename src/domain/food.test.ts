@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   draftToForm,
+  foodSubtitle,
   isCompleteDraft,
   isValidGtin,
   itemNutrition,
@@ -167,5 +168,14 @@ describe('validateFoodForm', () => {
   it('draftToForm usa coma decimal y vacíos', () => {
     expect(draftToForm({ name: 'X', kcal: 100, fatG: 0.5 })).toEqual({ name: 'X', brand: '', barcode: '', kcal: '100', proteinG: '', carbsG: '', fatG: '0,5', servingG: '' })
     expect(draftToForm().name).toBe('')
+  })
+})
+
+describe('foodSubtitle', () => {
+  it('marca, estimado por foto o sin marca', () => {
+    expect(foodSubtitle({ brand: 'Hacendado', source: 'ia-foto' })).toBe('Hacendado')
+    expect(foodSubtitle({ source: 'ia-foto' })).toBe('Estimado con IA (foto)')
+    expect(foodSubtitle({ source: 'manual' })).toBe('Sin marca')
+    expect(foodSubtitle({})).toBe('Sin marca')
   })
 })
