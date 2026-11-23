@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#67e8f9"/>
+      <stop offset="1" stop-color="#a78bfa"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#0a0a0f"/>
+  <!-- Emblema de rango: escudo con chevrones -->
+  <path d="M256 84 400 140v110c0 92-60 160-144 186-84-26-144-94-144-186V140z" fill="none" stroke="url(#g)" stroke-width="28" stroke-linejoin="round"/>
+  <path d="M184 236l72 48 72-48M184 296l72 48 72-48" fill="none" stroke="url(#g)" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
