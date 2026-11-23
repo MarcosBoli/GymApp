@@ -193,6 +193,18 @@ export interface WeekFeedback {
   createdAt: Timestamp
 }
 
+/** Mensaje del chat del coach. Un hilo por ejercicio (`threadKey` = exerciseId) o 'general' (desde el plan). */
+export interface ChatMessage {
+  id: string
+  threadKey: string
+  role: 'user' | 'assistant'
+  content: string
+  createdAt: Timestamp
+  /** Solo respuestas: modelo que respondió y si se cortó (límite de longitud o de tiempo). */
+  model?: string
+  truncated?: boolean
+}
+
 /** Estado de la serie de promoción de un músculo (o 'global'). */
 export interface RankStateRow {
   id: string

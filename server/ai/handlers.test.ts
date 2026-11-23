@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { describe, expect, it, vi } from 'vitest'
-import { createAiHandlers, SECRET_HEADER } from './handlers.js'
+import { CHAT_BUDGET_MS, createAiHandlers, SECRET_HEADER } from './handlers.js'
 import { mapAnthropicError, supportsServerFallback, type AiClient } from './claude.js'
 import { readAiConfig } from './env.js'
 import { secretMatches } from './http.js'
@@ -9,20 +9,49 @@ import { AI_ERROR_MESSAGES, AI_MAX_BODY_BYTES, type AiErrorCode } from '../../sr
 
 const ENV = { ANTHROPIC_API_KEY: 'sk-test', APP_SECRET: 's3cr3t' }
 
-function fakeClient(reply: Partial<Anthropic.Beta.BetaMessage> | Error = {}) {
-  const create = vi.fn(async () => {
+type Ev = Record<string, any>
+
+/** Eventos SSE de una respuesta de texto (lo que itera el stream del SDK). */
+const textEvents = (parts: string[], stop: string = 'end_turn', model = 'claude-haiku-5-5'): Ev[] => [
+  { type: 'message_start', message: { model } },
+  { type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } },
+  ...parts.map((text) => ({ type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text } })),
+  { type: 'content_block_stop', index: 0 },
+  { type: 'message_delta', delta: { stop_reason: stop }, usage: { output_tokens: 5 } },
+  { type: 'message_stop' },
+]
+
+interface StreamOpts {
+  /** Error lanzado a mitad del stream (tras los eventos). */
+  failWith?: Error
+  /** Se queda esperando tras los eventos hasta que se aborte la señal. */
+  hang?: boolean
+}
+
+function fakeClient(reply: Ev[] | Error = textEvents(['Hola ', 'mundo']), opts: StreamOpts = {}) {
+  const aborted = { value: false }
+  const create = vi.fn(async (_params: unknown, options: { signal?: AbortSignal }) => {
     if (reply instanceof Error) throw reply
-    return {
-      model: 'claude-haiku-5-5',
-      stop_reason: 'end_turn',
-      content: [{ type: 'text', text: 'Hola ' }, { type: 'text', text: 'mundo' }],
-      usage: { input_tokens: 10, output_tokens: 5 },
-      ...reply,
-    }
+    const signal = options.signal
+    signal?.addEventListener('abort', () => (aborted.value = true))
+    return (async function* () {
+      for (const e of reply) yield e
+      if (opts.failWith) throw opts.failWith
+      if (opts.hang) {
+        await new Promise((resolve) => signal?.addEventListener('abort', resolve))
+        throw new Anthropic.APIUserAbortError()
+      }
+    })()
   })
   const retrieve = vi.fn(async (id: string) => ({ id }))
   const client = { beta: { messages: { create } }, models: { retrieve } } as unknown as AiClient
-  return { client, create, retrieve }
+  return { client, create, retrieve, aborted }
+}
+
+/** Lee la respuesta NDJSON del chat. */
+async function readChat(res: Response) {
+  const text = await res.text()
+  return text.split('\n').filter(Boolean).map((l) => JSON.parse(l) as Record<string, any>)
 }
 
 const post = (path: string, body: unknown, headers: Record<string, string> = { [SECRET_HEADER]: 's3cr3t' }) =>
@@ -135,35 +164,91 @@ describe('validación', () => {
 })
 
 describe('llamadas a Claude', () => {
-  it('chat: CHAT_MODEL, effort low, sin fallbacks en Haiku, contexto como bloque de sistema', async () => {
+  it('chat: streaming NDJSON con CHAT_MODEL, effort low, sin fallbacks en Haiku, contexto como bloque de sistema', async () => {
     const { client, create } = fakeClient()
     const h = createAiHandlers({ env: ENV, makeClient: () => client })
-    const r = await call(h.chat, post('/api/chat', { ...chatBody, context: 'Pecho: Oro II' }))
-    expect(r.status).toBe(200)
-    expect(r.body).toEqual({ text: 'Hola mundo', model: 'claude-haiku-5-5', truncated: false, usage: { input_tokens: 10, output_tokens: 5 } })
-    expect(r.headers.get('cache-control')).toBe('no-store')
+    const res = await h.chat(post('/api/chat', { ...chatBody, context: 'Pecho: Oro II' }))
+    expect(res.status).toBe(200)
+    expect(res.headers.get('content-type')).toContain('application/x-ndjson')
+    expect(res.headers.get('cache-control')).toBe('no-store')
+    expect(await readChat(res)).toEqual([
+      { type: 'delta', text: 'Hola ' },
+      { type: 'delta', text: 'mundo' },
+      { type: 'done', model: 'claude-haiku-5-5', truncated: false },
+    ])
     const [params, options] = create.mock.calls[0] as unknown as [Record<string, any>, Record<string, any>]
-    expect(params).toMatchObject({ model: 'claude-haiku-5-5', max_tokens: 2000, output_config: { effort: 'low' }, messages: [{ role: 'user', content: '¿Cuántas series hago?' }] })
+    expect(params).toMatchObject({ model: 'claude-haiku-5-5', stream: true, max_tokens: 1500, output_config: { effort: 'low' }, messages: [{ role: 'user', content: '¿Cuántas series hago?' }] })
+    expect(params.system[0].text).toContain('fisioterapeuta')
     expect(params.system[1].text).toContain('Pecho: Oro II')
     expect(params).not.toHaveProperty('fallbacks')
     expect(params).not.toHaveProperty('temperature')
-    expect(options).toEqual({ timeout: 25_000, maxRetries: 1 })
+    expect(options).toMatchObject({ timeout: 20_000, maxRetries: 1 })
+    expect(options.signal).toBeInstanceOf(AbortSignal)
   })
 
-  it('modelo configurado por entorno', async () => {
-    const { client, create } = fakeClient()
+  it('modelo configurado por entorno (y el que sirve la respuesta en done)', async () => {
+    const { client, create } = fakeClient(textEvents(['ok'], 'end_turn', 'claude-haiku-4-5-20251001'))
     const h = createAiHandlers({ env: { ...ENV, CHAT_MODEL: 'claude-haiku-4-5' }, makeClient: () => client })
-    await h.chat(post('/api/chat', chatBody))
+    const events = await readChat(await h.chat(post('/api/chat', chatBody)))
     const [params] = create.mock.calls[0] as unknown as [Record<string, any>]
     expect(params.model).toBe('claude-haiku-4-5')
     expect(params).not.toHaveProperty('output_config') // modelos antiguos sin effort
+    expect(events.at(-1)).toEqual({ type: 'done', model: 'claude-haiku-4-5-20251001', truncated: false })
   })
 
-  it('negativa del modelo → 422 refused', async () => {
-    const h = createAiHandlers({ env: ENV, makeClient: () => fakeClient({ stop_reason: 'refusal', content: [] }).client })
-    const r = await call(h.chat, post('/api/chat', chatBody))
-    expect(r.status).toBe(422)
-    expect(r.body.error.code).toBe('refused')
+  it('Sonnet 5.5 como CHAT_MODEL → fallbacks del servidor', async () => {
+    const { client, create } = fakeClient()
+    const h = createAiHandlers({ env: { ...ENV, CHAT_MODEL: 'claude-sonnet-5-5' }, makeClient: () => client })
+    await readChat(await h.chat(post('/api/chat', chatBody)))
+    const [params] = create.mock.calls[0] as unknown as [Record<string, any>]
+    expect(params).toMatchObject({ fallbacks: 'default', betas: ['server-side-fallback-2026-07-01'] })
+  })
+
+  it('cortada por max_tokens → truncated', async () => {
+    const h = createAiHandlers({ env: ENV, makeClient: () => fakeClient(textEvents(['Paso 1…'], 'max_tokens')).client })
+    expect((await readChat(await h.chat(post('/api/chat', chatBody)))).at(-1)).toMatchObject({ type: 'done', truncated: true })
+  })
+
+  it('negativa del modelo → evento error refused (la app descarta el parcial)', async () => {
+    const h = createAiHandlers({ env: ENV, makeClient: () => fakeClient(textEvents(['Te expl'], 'refusal')).client })
+    const events = await readChat(await h.chat(post('/api/chat', chatBody)))
+    expect(events.at(-1)).toEqual({ type: 'error', error: { code: 'refused', message: AI_ERROR_MESSAGES.refused } })
+  })
+
+  it('error a mitad del stream → evento error con su código', async () => {
+    const overloaded = Anthropic.APIError.generate(529, { type: 'error', error: { type: 'overloaded_error', message: 'x' } }, undefined, new Headers())
+    const h = createAiHandlers({ env: ENV, makeClient: () => fakeClient(textEvents(['Hola']).slice(0, 3), { failWith: overloaded }).client })
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const events = await readChat(await h.chat(post('/api/chat', chatBody)))
+    spy.mockRestore()
+    expect(events).toEqual([{ type: 'delta', text: 'Hola' }, { type: 'error', error: { code: 'ai_unavailable', message: AI_ERROR_MESSAGES.ai_unavailable } }])
+  })
+
+  it('pasado el presupuesto de tiempo → corta y marca truncated', async () => {
+    vi.useFakeTimers()
+    try {
+      const { client, aborted } = fakeClient(textEvents(['Empieza']).slice(0, 3), { hang: true })
+      let t = 0
+      const h = createAiHandlers({ env: ENV, makeClient: () => client, now: () => t })
+      const res = await h.chat(post('/api/chat', chatBody))
+      const reading = readChat(res)
+      t = CHAT_BUDGET_MS
+      await vi.advanceTimersByTimeAsync(CHAT_BUDGET_MS)
+      expect(await reading).toEqual([{ type: 'delta', text: 'Empieza' }, { type: 'done', model: 'claude-haiku-5-5', truncated: true }])
+      expect(aborted.value).toBe(true)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('si la app cancela la lectura, se aborta la petición a Claude', async () => {
+    const { client, aborted } = fakeClient(textEvents(['a']).slice(0, 3), { hang: true })
+    const h = createAiHandlers({ env: ENV, makeClient: () => client })
+    const res = await h.chat(post('/api/chat', chatBody))
+    const reader = res.body!.getReader()
+    await reader.read()
+    await reader.cancel()
+    expect(aborted.value).toBe(true)
   })
 
   it('health: comprueba los dos modelos sin generar texto', async () => {

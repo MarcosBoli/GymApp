@@ -10,59 +10,18 @@ export interface AiClient {
 
 export const createAnthropicClient = (apiKey: string): AiClient => new Anthropic({ apiKey })
 
-type Effort = 'low' | 'medium' | 'high'
-
-export interface ClaudeCall {
-  model: string
-  system: string
-  context?: string
-  messages: Anthropic.Beta.BetaMessageParam[]
-  maxTokens: number
-  effort: Effort
-  /** ms por intento. Con maxRetries, el total debe caber en el maxDuration de la función (60 s). */
-  timeoutMs: number
-  maxRetries: number
-}
-
-export interface ClaudeResult {
-  text: string
-  model: string
-  /** true si se cortó por max_tokens. */
-  truncated: boolean
-  usage: { input_tokens: number; output_tokens: number }
-}
+export type Effort = 'low' | 'medium' | 'high'
 
 /** Modelos que admiten `fallbacks` en el servidor (reintento automático si el modelo rechaza la petición). */
 export const supportsServerFallback = (model: string) => /^claude-(sonnet-5-5|opus-5-5|opus-5|fable-5-[12])$/.test(model)
 /** Generación 5.x: admiten output_config.effort. Con otros modelos no se envía. */
-const supportsEffort = (model: string) => /^claude-(opus|sonnet|haiku|fable|mythos)-5/.test(model)
+export const supportsEffort = (model: string) => /^claude-(opus|sonnet|haiku|fable|mythos)-5/.test(model)
 
-export async function callClaude(client: AiClient, call: ClaudeCall): Promise<ClaudeResult> {
-  const system: Anthropic.Beta.BetaTextBlockParam[] = [{ type: 'text', text: call.system }]
-  if (call.context) system.push({ type: 'text', text: `Datos del usuario (de su app):\n${call.context}` })
-
-  const response = await client.beta.messages.create(
-    {
-      model: call.model,
-      max_tokens: call.maxTokens,
-      system,
-      messages: call.messages,
-      ...(supportsEffort(call.model) ? { output_config: { effort: call.effort } } : {}),
-      ...(supportsServerFallback(call.model) ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' as const } : {}),
-    },
-    { timeout: call.timeoutMs, maxRetries: call.maxRetries },
-  )
-
-  if (response.stop_reason === 'refusal') throw new HttpError('refused', 422)
-  const text = response.content
-    .flatMap((b) => (b.type === 'text' ? [b.text] : []))
-    .join('')
-    .trim()
+/** Parámetros que dependen del modelo: effort (5.x) y fallbacks del servidor (donde se admiten). */
+export function modelOptions(model: string, effort: Effort) {
   return {
-    text,
-    model: response.model,
-    truncated: response.stop_reason === 'max_tokens',
-    usage: { input_tokens: response.usage.input_tokens, output_tokens: response.usage.output_tokens },
+    ...(supportsEffort(model) ? { output_config: { effort } } : {}),
+    ...(supportsServerFallback(model) ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' as const } : {}),
   }
 }
 

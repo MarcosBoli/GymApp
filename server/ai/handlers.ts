@@ -1,5 +1,6 @@
 import { AI_MAX_BODY_BYTES } from '../../src/domain/aiErrors.js'
-import { callClaude, createAnthropicClient, mapAnthropicError, type AiClient } from './claude.js'
+import { createAnthropicClient, mapAnthropicError, type AiClient } from './claude.js'
+import { streamChat } from './chat.js'
 import { readAiConfig, type AiConfig, type Env } from './env.js'
 import { errorResponse, HttpError, json, readJsonBody, secretMatches } from './http.js'
 import { validateChatRequest } from './validate.js'
@@ -7,10 +8,6 @@ import { generatePlan } from './plan.js'
 import { PlanRequestSchema } from '../../src/domain/planSchema.js'
 
 export const SECRET_HEADER = 'x-app-secret'
-
-const CHAT_SYSTEM = `Eres el asistente de GymApp, una app de entrenamiento de fuerza y nutrición.
-Responde en español de España, de forma breve, práctica y segura. Si te dan datos del usuario, úsalos.
-No des consejo médico; ante dolor o lesión, recomienda consultar a un profesional.`
 
 export interface HandlerDeps {
   env: Env
@@ -20,6 +17,8 @@ export interface HandlerDeps {
 
 /** Presupuesto de /api/plan: un poco menos que el maxDuration (60 s) de la función. */
 export const PLAN_BUDGET_MS = 57_000
+/** Tiempo máximo de una respuesta del chat en streaming (luego se corta como truncada). */
+export const CHAT_BUDGET_MS = 55_000
 
 /**
  * Handlers de las funciones /api. Orden de comprobaciones: método → configuración →
@@ -51,20 +50,12 @@ export function createAiHandlers({ env, makeClient = createAnthropicClient, now 
         return json({ ok: true, models: { plan: config.planModel, chat: config.chatModel } })
       }),
 
+    /** Chat del coach: respuesta en streaming (NDJSON) de CHAT_MODEL. */
     chat: (request: Request) =>
       guarded(request, 'POST', async (config, client) => {
+        const started = now()
         const body = validateChatRequest(await readJsonBody(request, AI_MAX_BODY_BYTES))
-        const result = await callClaude(client, {
-          model: config.chatModel,
-          system: CHAT_SYSTEM,
-          context: body.context,
-          messages: body.messages,
-          maxTokens: 2000,
-          effort: 'low',
-          timeoutMs: 25_000,
-          maxRetries: 1,
-        })
-        return json(result)
+        return streamChat(client, config.chatModel, body, { deadline: started + CHAT_BUDGET_MS, now })
       }),
 
     /** Rutina semanal: contexto del usuario + catálogo → plan validado (zod + catálogo, 1 reintento). */

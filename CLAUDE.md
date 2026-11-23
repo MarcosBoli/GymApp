@@ -97,6 +97,13 @@ server/ai/     Lógica de las funciones: secreto, límites, validación, llamada
   - El modelo nunca da pesos: `suggestWeight` (Epley inverso con reps centrales + RIR del RPE, redondeo por material) a partir del mejor e1RM de 90 días.
   - Dexie v6: `weeklyPlans` (versiones por semana; regenerar/editar/restaurar = versión nueva, la anterior queda `superseded`) y `weekFeedback`. Los entrenos guardan `planId`/`planDayIndex`.
   - "Día que toca" (`dayToTrain`): el de hoy si está pendiente, si no el primer pendiente. Valoración: el domingo de la semana con plan y, al generar, la semana anterior si tuvo actividad (`weekToRate`).
+- **Chat del coach** (`server/ai/chat.ts`, `src/domain/chatStream.ts`, `src/domain/coachChat.ts`, `src/domain/chatMarkdown.ts`, `src/db/coachChat.ts`, `src/components/coach/`):
+  - `/api/chat` responde en streaming NDJSON (`delta` / `done` / `error`, protocolo en `chatStream.ts`, compartido sin imports relativos). Errores antes de empezar → JSON con estado HTTP; a mitad → evento `error`. Negativa → `refused` y la app descarta el parcial. Presupuesto de 55 s (luego `done` con `truncated`); si la app cancela, se aborta la petición a Claude.
+  - `streamCoachChat` (`src/lib/aiClient.ts`): "Parar" o corte a medias → devuelve lo recibido como truncado; 30 s sin datos = colgado.
+  - Dexie v7: `chatMessages` (`[threadKey+createdAt]`), un hilo por ejercicio (`threadKey` = exerciseId) o `general` (desde el plan). `askCoach` guarda la pregunta antes de llamar (si falla, "Reintentar" la reenvía sin duplicarla) y la respuesta al terminar.
+  - Contexto (`buildChatContext`, ≤ 16 000 caracteres): ejercicio (material, músculos, mejor e1RM 90 d, objetivo en el plan), rutina de la semana con los pesos de la app y nivel (rango global, eslabón débil, rangos por músculo con los del ejercicio primero). `chatRequestMessages` recorta el historial a los límites del servidor (`CHAT_LIMITS`).
+  - Dolor: lo indica el system prompt (parar y consultar a fisio/médico, sin diagnosticar) y además la app muestra un aviso fijo si la última pregunta lo menciona (`mentionsPain`).
+  - Respuestas con markdown mínimo (párrafos, listas, negrita) renderizado sin HTML (`parseChatMarkdown`). La hoja usa `useVisualViewport` para quedar encima del teclado de iOS.
 - `MotionConfig reducedMotion="user"`: con "Reducir movimiento" de iOS no hay desplazamientos animados.
 - Textos de la UI en español. Rutas en español.
 - Cámara (`getUserMedia`, p. ej. escáner de códigos de barras) **solo funciona en HTTPS** → probar en las previews de Vercel, no en `http://<ip-local>`.

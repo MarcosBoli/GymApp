@@ -19,6 +19,7 @@ import { editPlanDays, getWeekStatus, listPlanVersions, savePlanVersion } from '
 import { getRecentE1RMs } from '../db/planGeneration'
 import { getBodyweightAt, getCatalog, type Catalog } from '../db/workouts'
 import { usePlanUi } from '../store/planUi'
+import { useCoachChatUi } from '../store/coachChatUi'
 import { PageHeader } from '../components/layout/PageHeader'
 import { Sheet } from '../components/Sheet'
 import { currentWeekStart, todayKey } from '../components/plan/weekDates'
@@ -40,6 +41,7 @@ export default function PlanPage() {
     [plan?.id, profile?.bw],
   )
   const openGenerator = usePlanUi((s) => s.openGenerator)
+  const openChat = useCoachChatUi((s) => s.openChat)
   const [draft, setDraft] = useState<PlanDay[] | null>(null)
   const [picker, setPicker] = useState<Picker>(null)
   const [showHistory, setShowHistory] = useState(false)
@@ -88,6 +90,11 @@ export default function PlanPage() {
           Semana del {range} · {plan.source === 'ai' ? `IA${plan.model ? ` (${plan.model})` : ''}` : 'editada a mano'}
         </p>
         {plan.reasoning && <p className="rounded-2xl border border-border bg-surface p-4 text-sm text-zinc-300">{plan.reasoning}</p>}
+        {!editing && (
+          <button type="button" onClick={() => openChat(null)} className="h-11 w-full rounded-xl bg-accent/15 font-semibold text-accent">
+            Preguntar al coach sobre la rutina
+          </button>
+        )}
 
         {days.map((d) => (
           <section key={d.dayIndex} className="rounded-2xl border border-border bg-surface p-4">
@@ -112,6 +119,7 @@ export default function PlanPage() {
                   onChange={(patch) => setDraft(updatePlanExercise(days, d.dayIndex, i, patch))}
                   onSwap={() => setPicker({ kind: 'swap', dayIndex: d.dayIndex, position: i, exerciseId: e.exerciseId })}
                   onRemove={() => setDraft(removePlanExercise(days, d.dayIndex, i))}
+                  onAsk={() => openChat(e.exerciseId)}
                 />
               ))}
             </ul>
@@ -184,6 +192,7 @@ function ExerciseRow(props: {
   onChange: (patch: Partial<Omit<PlanExercise, 'exerciseId'>>) => void
   onSwap: () => void
   onRemove: () => void
+  onAsk: () => void
 }) {
   const { exercise: e, catalog, editing } = props
   return (
@@ -194,6 +203,16 @@ function ExerciseRow(props: {
           <div className="text-sm text-zinc-400 tabular-nums">{formatPlanTarget(e, props.weight)}</div>
           {e.notes && <div className="text-xs text-zinc-500">{e.notes}</div>}
         </div>
+        {!editing && (
+          <button
+            type="button"
+            onClick={props.onAsk}
+            aria-label={`Preguntar al coach sobre ${catalog.exerciseById.get(e.exerciseId)?.name ?? e.exerciseId}`}
+            className="h-8 shrink-0 rounded-full bg-accent/15 px-3 text-sm font-semibold text-accent"
+          >
+            Preguntar
+          </button>
+        )}
         {editing && (
           <div className="flex shrink-0 gap-1">
             <button type="button" onClick={props.onSwap} className="h-9 rounded-lg bg-white/5 px-3 text-sm">Cambiar</button>

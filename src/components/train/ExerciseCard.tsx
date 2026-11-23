@@ -5,6 +5,7 @@ import { formatDecimal } from '../../domain/number'
 import { addSet, deleteSet, getLastSessionSets, removeExerciseFromWorkout } from '../../db/workouts'
 import { useRestTimer } from '../../store/restTimer'
 import { useTrainUi } from '../../store/trainUi'
+import { useCoachChatUi } from '../../store/coachChatUi'
 import { unlockAudio } from '../../lib/sound'
 import { SetInput } from './SetInput'
 
@@ -23,6 +24,7 @@ export function ExerciseCard({ workoutId, exercise, sets, expanded, target, plan
   const last = useLiveQuery(async () => ({ sets: await getLastSessionSets(exercise.id, workoutId) }), [exercise.id, workoutId])
   const startRest = useRestTimer((s) => s.start)
   const expand = useTrainUi((s) => s.expand)
+  const openChat = useCoachChatUi((s) => s.openChat)
   const bodyweight = exercise.equipment === 'bodyweight'
   const labels = setLabels(sets)
   const workingCount = labels.filter((l) => l !== 'C').length
@@ -49,6 +51,14 @@ export function ExerciseCard({ workoutId, exercise, sets, expanded, target, plan
             {target && <span> · objetivo {target}</span>}
           </p>
           {notes && <p className="text-xs text-zinc-500">{notes}</p>}
+        </button>
+        <button
+          type="button"
+          onClick={() => openChat(exercise.id)}
+          aria-label={`Preguntar al coach sobre ${exercise.name}`}
+          className="h-8 shrink-0 rounded-full bg-accent/15 px-3 text-sm font-semibold text-accent"
+        >
+          Preguntar
         </button>
         <button type="button" onClick={remove} aria-label={`Quitar ${exercise.name}`} className="-mr-2 -mt-1 p-2 text-zinc-500 active:text-red-300">
           ✕

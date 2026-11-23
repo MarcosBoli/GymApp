@@ -14,5 +14,5 @@
     "noUnusedParameters": true,
     "noUncheckedIndexedAccess": true
   },
-  "include": ["api", "server", "src/domain/aiErrors.ts", "src/domain/planSchema.ts"]
+  "include": ["api", "server", "src/domain/aiErrors.ts", "src/domain/planSchema.ts", "src/domain/chatStream.ts"]
 }

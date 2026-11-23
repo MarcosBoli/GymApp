@@ -1,6 +1,7 @@
 import Dexie, { type EntityTable, type Table, type Transaction } from 'dexie'
 import type {
   BodyweightLog,
+  ChatMessage,
   Exercise,
   ExerciseMuscle,
   Food,
@@ -37,6 +38,7 @@ export type GymDB = Dexie & {
   rankStates: EntityTable<RankStateRow, 'id'>
   weeklyPlans: EntityTable<WeeklyPlan, 'id'>
   weekFeedback: EntityTable<WeekFeedback, 'weekStart'>
+  chatMessages: EntityTable<ChatMessage, 'id'>
 }
 
 export const DB_NAME = 'gymapp'
@@ -114,6 +116,11 @@ export function createDb(name = DB_NAME): GymDB {
   db.version(6).stores({
     weeklyPlans: 'id, weekStart, [weekStart+createdAt]',
     weekFeedback: 'weekStart',
+  })
+
+  // v7: chat del coach, un hilo por ejercicio (o 'general') ordenado por fecha
+  db.version(7).stores({
+    chatMessages: 'id, [threadKey+createdAt]',
   })
 
   // BD nueva (primer arranque): Dexie dispara populate una única vez

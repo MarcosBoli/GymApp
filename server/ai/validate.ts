@@ -1,10 +1,11 @@
+import { CHAT_LIMITS } from '../../src/domain/chatStream.js'
 import { HttpError } from './http.js'
 
 export const LIMITS = {
-  chatMessages: 40,
-  messageChars: 4000,
-  chatTotalChars: 30_000,
-  contextChars: 16_000,
+  chatMessages: CHAT_LIMITS.messages,
+  messageChars: CHAT_LIMITS.messageChars,
+  chatTotalChars: CHAT_LIMITS.totalChars,
+  contextChars: CHAT_LIMITS.contextChars,
 } as const
 
 export interface ChatTurn {
