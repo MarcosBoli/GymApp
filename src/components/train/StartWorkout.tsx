@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { PageHeader } from '../layout/PageHeader'
 import { deleteRoutine, getCatalog, getLastFinishedWorkout, listRoutines, startWorkout } from '../../db/workouts'
 import { useTrainUi } from '../../store/trainUi'
+import { WeekPlanCard } from '../plan/WeekPlanCard'
 
 export function StartWorkout() {
   const routines = useLiveQuery(() => listRoutines())
@@ -23,12 +24,9 @@ export function StartWorkout() {
     <>
       <PageHeader title="Entrenar" />
       <div className="space-y-6 px-4">
-        <button
-          type="button"
-          onClick={() => start()}
-          className="h-16 w-full rounded-2xl bg-accent text-lg font-bold text-bg active:scale-[0.98]"
-        >
-          Empezar entreno vacío
+        <WeekPlanCard variant="train" />
+        <button type="button" onClick={() => start()} className="h-12 w-full rounded-2xl border border-border font-semibold active:bg-white/5">
+          Entreno libre (vacío)
         </button>
 
         <section>

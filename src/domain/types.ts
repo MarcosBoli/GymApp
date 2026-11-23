@@ -1,5 +1,6 @@
 import type { PromotionState } from './ranking'
 import type { WorkoutSummary } from './summary'
+import type { PlanEquipment, TrainingGoal, WeekRating } from './planSchema'
 
 /**
  * Tipos de las entidades persistidas. Puros (sin Dexie) para que domain/ no dependa de la BD.
@@ -23,6 +24,12 @@ export interface UserProfile {
   heightCm: number
   activityLevel: ActivityLevel
   goal: Goal
+  /** Preferencias de entrenamiento para la rutina con IA (opcionales: perfiles antiguos). */
+  trainingGoal?: TrainingGoal
+  daysPerWeek?: number
+  sessionMinutes?: number
+  equipment?: PlanEquipment[]
+  limitations?: string
   updatedAt: Timestamp
 }
 
@@ -87,6 +94,9 @@ export interface Workout {
   exerciseIds: string[]
   /** Resumen de partida calculado al terminar (estable aunque se recargue). */
   summary?: WorkoutSummary
+  /** Día del plan semanal del que sale el entreno (adherencia y "día que toca"). */
+  planId?: string
+  planDayIndex?: number
   notes?: string
 }
 
@@ -145,6 +155,54 @@ export interface MealItem {
   proteinG: number
   carbsG: number
   fatG: number
+}
+
+export interface PlanExercise {
+  exerciseId: string
+  sets: number
+  repsMin: number
+  repsMax: number
+  rpeTarget: number
+  notes: string
+}
+
+export interface PlanDay {
+  /** 0 = lunes … 6 = domingo. */
+  dayIndex: number
+  name: string
+  exercises: PlanExercise[]
+}
+
+/** Versión de la rutina de una semana. Regenerar o editar crea otra versión (historial). */
+export interface WeeklyPlan {
+  id: string
+  /** Lunes de la semana. */
+  weekStart: DateKey
+  createdAt: Timestamp
+  status: 'active' | 'superseded'
+  source: 'ai' | 'manual'
+  days: PlanDay[]
+  reasoning: string
+  model?: string
+}
+
+/** Valoración de una semana (para el contexto del plan siguiente). */
+export interface WeekFeedback {
+  weekStart: DateKey
+  rating: WeekRating
+  createdAt: Timestamp
+}
+
+/** Mensaje del chat del coach. Un hilo por ejercicio (`threadKey` = exerciseId) o 'general' (desde el plan). */
+export interface ChatMessage {
+  id: string
+  threadKey: string
+  role: 'user' | 'assistant'
+  content: string
+  createdAt: Timestamp
+  /** Solo respuestas: modelo que respondió y si se cortó (límite de longitud o de tiempo). */
+  model?: string
+  truncated?: boolean
 }
 
 /** Estado de la serie de promoción de un músculo (o 'global'). */

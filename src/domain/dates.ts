@@ -45,3 +45,8 @@ export function startOfWeek(key: DateKey): DateKey {
   const day = fromDateKey(key).getDay() // 0 = domingo
   return addDays(key, -((day + 6) % 7))
 }
+
+/** Día de la semana con lunes = 0 … domingo = 6. */
+export function weekdayIndex(key: DateKey): number {
+  return (fromDateKey(key).getDay() + 6) % 7
+}

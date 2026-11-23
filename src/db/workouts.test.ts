@@ -18,6 +18,7 @@ import {
 } from './workouts'
 import { saveProfile } from './profile'
 import { exportAll } from './backup'
+import type { ProfileValues } from '../domain/profile'
 
 let n = 0
 const opened: GymDB[] = []
@@ -31,7 +32,7 @@ afterEach(async () => {
 })
 
 const T = new Date(2026, 10, 22, 18).getTime()
-const profile = { sex: 'male', birthDate: '1995-01-01', heightCm: 180, weightKg: 80, activityLevel: 'moderate', goal: 'gain' } as const
+const profile: ProfileValues = { sex: 'male', birthDate: '1995-01-01', heightCm: 180, weightKg: 80, activityLevel: 'moderate', goal: 'gain', trainingGoal: 'hypertrophy', daysPerWeek: 4, sessionMinutes: 60, equipment: ['barbell', 'dumbbell'], limitations: '' }
 
 describe('entreno en curso', () => {
   it('empezar, añadir ejercicios y series; persiste sin terminar', async () => {

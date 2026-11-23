@@ -24,12 +24,14 @@ src/
   components/  Componentes de UI reutilizables (layout/, icons/, …)
   pages/       Una página por tab/ruta: Inicio, Entrenar, Comida, Progreso, Perfil
   data/        Datos estáticos: músculos (muscles.ts), ejercicios con su mapeo a músculos (exercises.ts)…
-  lib/         Utilidades de navegador sin lógica de negocio (guardar archivos, sonido…)
+  lib/         Utilidades de navegador sin lógica de negocio (guardar archivos, sonido, cliente de /api…)
   store/       Stores Zustand de UI efímera (restTimer persistido en localStorage, trainUi)
-  router.tsx   Rutas (/, /entrenar, /comida, /progreso, /perfil), cada página con `lazy` (chunk propio)
+  router.tsx   Rutas (/, /entrenar, /entrenar/plan, /comida, /progreso, /perfil), cada página con `lazy` (chunk propio)
   main.tsx     Arranque: registro del SW, storage.persist(), render
   index.css    Tailwind + tema + utilidades safe-area (pt-safe, pb-safe, pl-safe, pr-safe)
 public/        Iconos PWA/iOS (generados desde public/logo.svg)
+api/           Funciones serverless de Vercel (entradas finas: health, chat, plan)
+server/ai/     Lógica de las funciones: secreto, límites, validación, llamada a Claude, errores (+ tests)
 ```
 
 ## Convenciones
@@ -82,6 +84,27 @@ public/        Iconos PWA/iOS (generados desde public/logo.svg)
   - Pantallas con varias consultas: render progresivo (cada bloque al llegar sus datos, con placeholder) en vez de esperar a todas.
   - `npm run fake-data` genera un año de datos realista (`fake-data/`, ignorado en git) para importar desde Perfil y medir.
 - **iOS/UX**: franja con desenfoque bajo la status bar (`AppShell`), `ScrollRestoration` por pestaña, recordatorio de backup en Perfil y punto en la pestaña si hay datos y la última copia tiene más de 14 días (`backupReminder`). El SW busca actualización al volver a primer plano.
+- **IA (funciones serverless de Vercel)** (`api/`, `server/ai/`, `src/lib/aiClient.ts`, `src/domain/aiErrors.ts`):
+  - `api/*.ts` son entradas finas (firma web `export default { fetch }`); la lógica está en `server/ai/` con dependencias inyectadas y tests sin red. Imports con extensión `.js` (ESM de Node); Vercel compila con el `compilerOptions` del `tsconfig.json` raíz (no sigue `references`).
+  - SDK oficial `@anthropic-ai/sdk` solo en el servidor. Variables: `ANTHROPIC_API_KEY`, `APP_SECRET` (obligatorias), `PLAN_MODEL` (def. `claude-sonnet-5-5`), `CHAT_MODEL` (def. `claude-haiku-5-5`). Nunca exponer la key al cliente.
+  - Cada petición lleva `x-app-secret` (comparación en tiempo constante; 401 si no coincide). El secreto vive en `localStorage` del dispositivo (Perfil › Asistente IA), fuera de los backups.
+  - Cuerpo ≤ `AI_MAX_BODY_BYTES` (64 KB, comprobado en app y servidor), validación de forma y tamaños; `maxDuration` 60 s (vercel.json) con timeouts del SDK por debajo.
+  - Errores: clases tipadas del SDK → códigos de `aiErrors.ts` (sin saldo, límite de gasto, timeout, JSON inválido…) con mensaje en español; el cliente también traduce respuestas que no son nuestras (504 de Vercel, sin conexión, /api no desplegada).
+  - Sonnet 5.5 (y otros modelos 5.x compatibles) con `fallbacks: "default"` del servidor ante negativas; `stop_reason: "refusal"` → error `refused`.
+- **Rutina semanal con IA** (`src/domain/coachContext.ts`, `src/domain/plan.ts`, `src/domain/planSchema.ts`, `src/db/plans.ts`, `src/db/planGeneration.ts`, `server/ai/plan.ts`):
+  - `buildCoachContext` (puro): perfil + preferencias (objetivo fuerza/hipertrofia/recomposición, días, minutos, material, limitaciones), por músculo rango/LP/tendencia de e1RM 4 sem/series semanales/días desde el último, eslabón débil y semana anterior (adherencia + valoración). Las preferencias se editan en Perfil › Entrenamiento.
+  - `planSchema.ts` (zod, sin imports relativos: lo usa también el servidor) define petición, salida (`exerciseId` como enum del catálogo) y `planErrors` (reglas extra). `/api/plan` usa salida estructurada (`betaZodOutputFormat` en `create`), valida con zod y reintenta UNA vez con los errores si queda tiempo dentro de los 60 s.
+  - El modelo nunca da pesos: `suggestWeight` (Epley inverso con reps centrales + RIR del RPE, redondeo por material) a partir del mejor e1RM de 90 días.
+  - Dexie v6: `weeklyPlans` (versiones por semana; regenerar/editar/restaurar = versión nueva, la anterior queda `superseded`) y `weekFeedback`. Los entrenos guardan `planId`/`planDayIndex`.
+  - "Día que toca" (`dayToTrain`): el de hoy si está pendiente, si no el primer pendiente. Valoración: el domingo de la semana con plan y, al generar, la semana anterior si tuvo actividad (`weekToRate`).
+- **Chat del coach** (`server/ai/chat.ts`, `src/domain/chatStream.ts`, `src/domain/coachChat.ts`, `src/domain/chatMarkdown.ts`, `src/db/coachChat.ts`, `src/components/coach/`):
+  - `/api/chat` responde en streaming NDJSON (`delta` / `done` / `error`, protocolo en `chatStream.ts`, compartido sin imports relativos). Errores antes de empezar → JSON con estado HTTP; a mitad → evento `error`. Negativa → `refused` y la app descarta el parcial. Presupuesto de 55 s (luego `done` con `truncated`); si la app cancela, se aborta la petición a Claude.
+  - `streamCoachChat` (`src/lib/aiClient.ts`): "Parar" o corte a medias → devuelve lo recibido como truncado; 30 s sin datos = colgado.
+  - Dexie v7: `chatMessages` (`[threadKey+createdAt]`), un hilo por ejercicio (`threadKey` = exerciseId) o `general` (desde el plan). `askCoach` guarda la pregunta antes de llamar (si falla, "Reintentar" la reenvía sin duplicarla) y la respuesta al terminar.
+  - Contexto (`buildChatContext`, ≤ 16 000 caracteres): ejercicio (material, músculos, mejor e1RM 90 d, objetivo en el plan), rutina de la semana con los pesos de la app y nivel (rango global, eslabón débil, rangos por músculo con los del ejercicio primero). `chatRequestMessages` recorta el historial a los límites del servidor (`CHAT_LIMITS`).
+  - Dolor: lo indica el system prompt (parar y consultar a fisio/médico, sin diagnosticar) y además la app muestra un aviso fijo si la última pregunta lo menciona (`mentionsPain`).
+  - Respuestas con markdown mínimo (párrafos, listas, negrita) renderizado sin HTML (`parseChatMarkdown`). La hoja usa `useVisualViewport` para quedar encima del teclado de iOS.
+- `MotionConfig reducedMotion="user"`: con "Reducir movimiento" de iOS no hay desplazamientos animados.
 - Textos de la UI en español. Rutas en español.
 - Cámara (`getUserMedia`, p. ej. escáner de códigos de barras) **solo funciona en HTTPS** → probar en las previews de Vercel, no en `http://<ip-local>`.
 
@@ -97,6 +120,7 @@ npm run test:watch          # tests en modo watch
 npm run typecheck           # solo comprobación de tipos
 npm run generate-pwa-assets # regenerar iconos desde public/logo.svg
 npm run fake-data           # 1 año de datos falsos → fake-data/*.json (importar en Perfil)
+npx vercel dev              # app + funciones /api en local (lee .env.local; ver .env.example)
 ```
 
 Desarrollo en Windows: los scripts son multiplataforma y `.gitattributes` fuerza finales de línea LF.

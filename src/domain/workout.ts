@@ -205,3 +205,20 @@ export function setLabels(sets: readonly Pick<WorkoutSet, 'isWarmup'>[]): string
   let n = 0
   return sets.map((s) => (s.isWarmup ? 'C' : String(++n)))
 }
+
+/**
+ * Primera propuesta de serie en un día del plan: mientras hoy no haya series de trabajo de
+ * ese ejercicio, el peso que calcula la app (e1RM + rango + RPE) y las reps centrales; después
+ * manda lo que se va haciendo (suggestNextSet).
+ */
+export function suggestPlannedSet(
+  planned: { weightKg: number | null; repsMin: number; repsMax: number } | undefined,
+  lastSession: readonly SetValues[],
+  today: readonly SetValues[],
+): { weightKg: number; reps: number } | null {
+  const doneToday = today.some((s) => !s.isWarmup)
+  if (planned && planned.weightKg !== null && !doneToday) {
+    return { weightKg: planned.weightKg, reps: Math.round((planned.repsMin + planned.repsMax) / 2) }
+  }
+  return suggestNextSet(lastSession, today)
+}

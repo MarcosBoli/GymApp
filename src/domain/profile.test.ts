@@ -1,14 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import { validateProfileForm, type ProfileForm } from './profile'
 
-const valid: ProfileForm = { sex: 'male', birthDate: '1995-06-15', heightCm: '178', weightKg: '80,5', activityLevel: 'moderate', goal: 'gain' }
+const training = { trainingGoal: 'hypertrophy', daysPerWeek: 4, sessionMinutes: 60, equipment: ['dumbbell', 'barbell'], limitations: '  rodilla izquierda ' } as const
+const valid: ProfileForm = { sex: 'male', birthDate: '1995-06-15', heightCm: '178', weightKg: '80,5', activityLevel: 'moderate', goal: 'gain', ...training, equipment: [...training.equipment] }
 const TODAY = '2026-11-22'
 
 describe('validateProfileForm', () => {
   it('acepta un formulario válido y parsea números con coma', () => {
     expect(validateProfileForm(valid, TODAY)).toEqual({
       ok: true,
-      value: { sex: 'male', birthDate: '1995-06-15', heightCm: 178, weightKg: 80.5, activityLevel: 'moderate', goal: 'gain' },
+      value: {
+        sex: 'male', birthDate: '1995-06-15', heightCm: 178, weightKg: 80.5, activityLevel: 'moderate', goal: 'gain',
+        trainingGoal: 'hypertrophy', daysPerWeek: 4, sessionMinutes: 60, equipment: ['barbell', 'dumbbell'], limitations: 'rodilla izquierda',
+      },
     })
   })
 
@@ -24,6 +28,11 @@ describe('validateProfileForm', () => {
     [{ weightKg: 'abc' }, 'weightKg'],
     [{ weightKg: '20' }, 'weightKg'],
     [{ weightKg: '400' }, 'weightKg'],
+    [{ equipment: [] }, 'equipment'],
+    [{ daysPerWeek: 0 }, 'daysPerWeek'],
+    [{ sessionMinutes: 300 }, 'sessionMinutes'],
+    [{ trainingGoal: 'zumba' }, 'trainingGoal'],
+    [{ limitations: 'x'.repeat(501) }, 'limitations'],
   ] as const)('rechaza %o', (patch, field) => {
     const r = validateProfileForm({ ...valid, ...patch } as ProfileForm, TODAY)
     expect(r.ok).toBe(false)

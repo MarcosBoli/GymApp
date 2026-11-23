@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router'
 import type { Workout } from '../../domain/types'
 import { formatClock } from '../../domain/restTimer'
 import { formatRoutineTarget } from '../../domain/workout'
+import { DAY_NAMES, formatPlanTarget, suggestWeight } from '../../domain/plan'
+import { getRecentE1RMs } from '../../db/planGeneration'
 import { db } from '../../db/db'
-import { discardWorkout, finishWorkout, getCatalog, getRoutineExercises, getWorkoutSets } from '../../db/workouts'
+import { discardWorkout, finishWorkout, getBodyweightAt, getCatalog, getRoutineExercises, getWorkoutSets } from '../../db/workouts'
 import { useTrainUi } from '../../store/trainUi'
 import { useRestTimer } from '../../store/restTimer'
 import { useNow } from '../hooks/useNow'
@@ -22,11 +24,24 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
         : { name: undefined, exercises: [] },
     [workout.routineId],
   )
+  // Día del plan semanal (si el entreno sale de ahí) + pesos sugeridos por la app
+  const planned = useLiveQuery(async () => {
+    if (!workout.planId) return { day: undefined, weights: new Map<string, number | null>() }
+    const plan = await db.weeklyPlans.get(workout.planId)
+    const day = plan?.days.find((d) => d.dayIndex === workout.planDayIndex)
+    const bw = await getBodyweightAt(Date.now())
+    const e1rms = await getRecentE1RMs(day?.exercises.map((e) => e.exerciseId) ?? [], Date.now(), bw)
+    const exercises = await db.exercises.bulkGet(day?.exercises.map((e) => e.exerciseId) ?? [])
+    const weights = new Map(
+      (day?.exercises ?? []).map((e, i) => [e.exerciseId, suggestWeight(e1rms.get(e.exerciseId), e, exercises[i]?.equipment ?? 'other', bw)] as const),
+    )
+    return { day, weights }
+  }, [workout.planId, workout.planDayIndex])
   const { expandedExerciseId, openPicker } = useTrainUi()
   const stopRest = useRestTimer((s) => s.stop)
   const now = useNow(1000)
 
-  if (!sets || !catalog || !routine) return null
+  if (!sets || !catalog || !routine || !planned) return null
 
   // Sin selección → el primero. Con selección que aún no está en la lista (recién añadido, la
   // consulta en vivo llega un instante después) no se despliega otro para no robar el foco.
@@ -57,7 +72,7 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
     <>
       <header className="sticky top-0 z-20 -mt-[env(safe-area-inset-top)] flex items-center gap-3 border-b border-border bg-bg/90 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-3 backdrop-blur-xl">
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-xl font-bold">{routine.name ?? 'Entreno libre'}</h1>
+          <h1 className="truncate text-xl font-bold">{planned.day ? `${DAY_NAMES[planned.day.dayIndex]} · ${planned.day.name}` : (routine.name ?? 'Entreno libre')}</h1>
           <p className="text-sm tabular-nums text-zinc-400">{formatClock(now - workout.startedAt)}</p>
         </div>
         <button type="button" onClick={finish} className="h-11 rounded-xl bg-accent px-5 font-bold text-bg active:scale-[0.98]">
@@ -75,6 +90,8 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
           const exercise = catalog.exerciseById.get(id)
           if (!exercise) return null
           const target = routine.exercises.find((re) => re.exerciseId === id)
+          const planEx = planned.day?.exercises.find((e) => e.exerciseId === id)
+          const planWeight = planned.weights.get(id) ?? null
           return (
             <ExerciseCard
               key={id}
@@ -82,7 +99,9 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
               exercise={exercise}
               sets={sets.filter((s) => s.exerciseId === id)}
               expanded={expanded === id}
-              target={target ? formatRoutineTarget(target) : ''}
+              target={planEx ? formatPlanTarget(planEx, planWeight) : target ? formatRoutineTarget(target) : ''}
+              planned={planEx ? { weightKg: planWeight, repsMin: planEx.repsMin, repsMax: planEx.repsMax } : undefined}
+              notes={planEx?.notes}
             />
           )
         })}
