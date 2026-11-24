@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Link } from 'react-router'
 import type { MealType } from '../../domain/types'
@@ -24,7 +24,10 @@ export default function SuggestFlow({ mealType, today }: { mealType: MealType; t
   const [meal, setMeal] = useState<MealType>(mealType)
   const [request, setRequest] = useState('')
   const [batches, setBatches] = useState<Suggestion[][]>([])
+  const [notice, setNotice] = useState<string>()
   const [step, setStep] = useState<Step>({ kind: 'compose' })
+  // Cada petición lleva un número: si se cancela (o se lanza otra), su respuesta se ignora
+  const requestId = useRef(0)
 
   if (!inputs) return <p className="py-8 text-center text-neutral-400">Cargando…</p>
   const { overview, prefs, goal, recentNames } = inputs
@@ -45,37 +48,42 @@ export default function SuggestFlow({ mealType, today }: { mealType: MealType; t
   const remaining = remainingToday(target, consumed)
 
   async function recommend(exclude: Suggestion[][]) {
+    const id = ++requestId.current
     setStep({ kind: 'loading' })
     try {
       const context = buildMealSuggestContext({ meal, goal: goal!, target, consumed, prefs: prefs!, recentNames, request })
-      const excluir = seenNames(exclude)
+      const excluir = seenNames(exclude).slice(-60) // límite del servidor
       const r = await callAi<MealSuggestionsResponse>('/api/meal-suggestions', { context, ...(excluir.length ? { excluir } : {}) })
+      if (id !== requestId.current) return
       setBatches([...exclude, r.opciones])
+      setNotice(r.aviso)
       setStep({ kind: 'results' })
     } catch (err) {
+      if (id !== requestId.current) return
       setStep({ kind: 'error', message: err instanceof AiRequestError ? err.message : 'No se pudieron calcular las opciones. Inténtalo de nuevo.' })
     }
+  }
+  const cancel = () => {
+    requestId.current++
+    setStep(batches.length ? { kind: 'results' } : { kind: 'compose' })
   }
 
   if (step.kind === 'recipe') {
     return <RecipeView option={step.option} prefs={prefs} mealType={meal} onBack={() => setStep({ kind: 'results' })} />
   }
 
-  if (step.kind === 'loading') {
-    return (
-      <div className="flex flex-col items-center gap-3 py-12" role="status" aria-live="polite">
-        <span aria-hidden className="size-10 animate-spin rounded-full border-4 border-accent/30 border-t-accent" />
-        <span className="font-semibold">Buscando qué te encaja…</span>
-        <span className="text-sm text-neutral-400">Suele tardar unos segundos</span>
-      </div>
-    )
-  }
+  if (step.kind === 'loading') return <Searching onCancel={cancel} />
 
   if (step.kind === 'results' && batches.length) {
     const current = batches.at(-1)!
     const { simple, elaborate } = splitByKind(current)
     return (
       <div className="space-y-5">
+        {notice && (
+          <p role="status" className="rounded-xl border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-sm text-amber-100">
+            {notice}
+          </p>
+        )}
         <Section title="Rápidas" options={simple} onRecipe={(o) => setStep({ kind: 'recipe', option: o })} meal={meal} />
         <Section title="Más elaboradas" options={elaborate} onRecipe={(o) => setStep({ kind: 'recipe', option: o })} meal={meal} />
         <button type="button" onClick={() => recommend(batches)} className="h-12 w-full rounded-xl bg-accent font-semibold text-bg active:scale-[0.98]">
@@ -149,10 +157,32 @@ function Missing({ children, onClose }: { children: React.ReactNode; onClose: ()
   )
 }
 
+/** Carga con el tiempo que lleva: a los 15 s avisa de que tarda, y siempre se puede cancelar. */
+function Searching({ onCancel }: { onCancel: () => void }) {
+  const [seconds, setSeconds] = useState(0)
+  useEffect(() => {
+    const t = setInterval(() => setSeconds((s) => s + 1), 1000)
+    return () => clearInterval(t)
+  }, [])
+  return (
+    <div className="flex flex-col items-center gap-3 py-12" role="status" aria-live="polite">
+      <span aria-hidden className="size-10 animate-spin rounded-full border-4 border-accent/30 border-t-accent" />
+      <span className="font-semibold">Buscando qué te encaja…</span>
+      <span className="text-center text-sm text-neutral-400">
+        {seconds < 15 ? 'Suele tardar unos 10-20 segundos' : 'Está tardando más de lo normal. Puede tardar hasta un minuto.'}
+      </span>
+      <button type="button" onClick={onCancel} className="mt-2 h-11 rounded-xl border border-border px-6 font-semibold">
+        Cancelar
+      </button>
+    </div>
+  )
+}
+
 function Section({ title, options, onRecipe, meal }: { title: string; options: Suggestion[]; onRecipe: (o: Suggestion) => void; meal: MealType }) {
   return (
     <section>
       <h3 className="mb-2 text-sm font-semibold tracking-wide text-neutral-400 uppercase">{title}</h3>
+      {options.length === 0 && <p className="text-sm text-neutral-500">Sin opciones de este tipo esta vez.</p>}
       <ul className="space-y-2">
         {options.map((o) => (
           <li key={o.id} className="rounded-2xl border border-border bg-surface p-3.5">

@@ -84,12 +84,35 @@ type Params = { model: string; max_tokens: number; system: string; tools: { name
 const params = (create: ReturnType<typeof vi.fn>, i = 0) => (create.mock.calls[i] as unknown as [Params])[0]
 const deadline = () => Date.now() + 57_000
 
+/** Cliente falso que responde según la tanda (sencilla / elaborada) que pide el mensaje. */
+function kindClient(replies: Record<'sencilla' | 'elaborada', Reply[]>) {
+  const create = vi.fn(async (p: Params) => {
+    const kind = p.messages[0]!.content[0]!.text.includes('tipo "sencilla"') ? 'sencilla' : 'elaborada'
+    const r = replies[kind].shift()
+    if (!r) throw new Error(`sin respuesta para ${kind}`)
+    if (r.stop_reason === 'throw') throw new Anthropic.APIConnectionTimeoutError()
+    return {
+      model: 'claude-haiku-5-5',
+      stop_reason: r.stop_reason ?? 'tool_use',
+      content: r.noTool ? [{ type: 'text', text: 'Hola' }] : [{ type: 'thinking', thinking: '', signature: 's' }, { type: 'tool_use', id: 't1', name: r.tool ?? SUGGEST_TOOL, input: r.input }],
+      usage: { input_tokens: 500, output_tokens: 900 },
+    }
+  })
+  return { client: { beta: { messages: { create } }, models: { retrieve: vi.fn() } } as unknown as AiClient, create }
+}
+const simple = () => six().slice(0, 3)
+const elaborate = () => six().slice(3)
+const callsFor = (create: ReturnType<typeof vi.fn>, kind: string) => (create.mock.calls as unknown as [Params][]).map(([p]) => p).filter((p) => p.messages[0]!.content[0]!.text.includes(`tipo "${kind}"`))
+
 describe('suggestMeals', () => {
-  it('6 opciones válidas: tool use sin forzar, ids s1-s3 / e1-e3', async () => {
-    const { client: c, create } = client({ input: { opciones: six() } })
+  it('dos tandas en paralelo (3 + 3): tool use sin forzar, ids s1-s3 / e1-e3', async () => {
+    const { client: c, create } = kindClient({ sencilla: [{ input: { opciones: simple() } }], elaborada: [{ input: { opciones: elaborate() } }] })
     const r = await suggestMeals(c, 'claude-haiku-5-5', req(), { deadline: deadline() })
+    expect(create).toHaveBeenCalledTimes(2)
     expect(r.attempts).toBe(1)
-    expect(r.value.map((o) => o.id)).toEqual(['s1', 's2', 's3', 'e1', 'e2', 'e3'])
+    expect(r.aviso).toBeUndefined()
+    expect(r.opciones.map((o) => o.id)).toEqual(['s1', 's2', 's3', 'e1', 'e2', 'e3'])
+    expect(r.usage).toEqual({ input_tokens: 1000, output_tokens: 1800 })
     const p = params(create)
     expect(p.tools.map((t) => t.name)).toEqual([SUGGEST_TOOL])
     expect(p.tool_choice).toBeUndefined()
@@ -97,11 +120,12 @@ describe('suggestMeals', () => {
     expect(p.tools[0]!.input_schema).not.toHaveProperty('$schema')
   })
 
-  it('el prompt lleva lo que queda, el objetivo de la comida, preferencias, últimas comidas, petición y exclusiones', () => {
-    const text = buildSuggestPrompt(req({}, ['Pollo al horno']))
-    for (const s of ['Comida: cena', 'déficit', 'Le queda hoy: 700 kcal · 55 g proteína', 'Objetivo para esta comida (±15 %)', 'No le gusta: coliflor, hígado', 'Utensilios: sartén, microondas', 'Tiempo máximo para cocinar: 30 min', 'Elaboradas: como mucho 30 min', 'no repetir): Macarrones con tomate, Lentejas', 'Petición del usuario: algo con pollo', 'propón otras distintas): Pollo al horno']) {
+  it('el prompt lleva lo que queda, el objetivo de la comida, preferencias, últimas comidas, petición, exclusiones y el tipo', () => {
+    const text = buildSuggestPrompt(req({}, ['Pollo al horno']), 'elaborada')
+    for (const s of ['Comida: cena', 'déficit', 'Le queda hoy: 700 kcal · 55 g proteína', 'Objetivo para esta comida (±15 %)', 'No le gusta: coliflor, hígado', 'Utensilios: sartén, microondas', 'Tiempo máximo para cocinar: 30 min', 'tipo "elaborada"', 'como mucho 30 min', 'no repetir): Macarrones con tomate, Lentejas', 'Petición del usuario: algo con pollo', 'propón otras distintas): Pollo al horno']) {
       expect(text).toContain(s)
     }
+    expect(buildSuggestPrompt(req(), 'sencilla')).toContain('tipo "sencilla": rápidas (≤ 15 min), ≤ 6 ingredientes')
   })
 
   it('el system prompt cubre las reglas', () => {
@@ -109,36 +133,50 @@ describe('suggestMeals', () => {
   })
 
   it('pocas kcal restantes (o negativas): pide opciones ligeras, sin objetivo de comida', () => {
-    const text = buildSuggestPrompt(req({ quedaHoy: { kcal: -120, proteina: 10, carbohidratos: -30, grasa: -5 }, objetivoComida: { kcal: 0, proteina: 10, carbohidratos: 0, grasa: 0 }, ligera: true }))
+    const text = buildSuggestPrompt(req({ quedaHoy: { kcal: -120, proteina: 10, carbohidratos: -30, grasa: -5 }, objetivoComida: { kcal: 0, proteina: 10, carbohidratos: 0, grasa: 0 }, ligera: true }), 'sencilla')
     expect(text).toContain('Le queda hoy: -120 kcal')
     expect(text).toContain('opciones ligeras')
     expect(text).not.toContain('Objetivo para esta comida')
   })
 
-  it('macros incoherentes → reintenta una vez con el error', async () => {
-    const bad = six()
+  it('macros incoherentes → reintenta solo esa tanda, con el error', async () => {
+    const bad = simple()
     bad[0] = { ...bad[0]!, kcal: 900 } // 4·52 + 4·60 + 9·22 = 646
-    const { client: c, create } = client({ input: { opciones: bad } }, { input: { opciones: six() } })
+    const { client: c, create } = kindClient({ sencilla: [{ input: { opciones: bad } }, { input: { opciones: simple() } }], elaborada: [{ input: { opciones: elaborate() } }] })
     const r = await suggestMeals(c, 'claude-haiku-5-5', req(), { deadline: deadline() })
     expect(r.attempts).toBe(2)
-    expect(params(create, 1).messages[0]!.content.at(-1)!.text).toContain('no cuadra con los macros')
+    expect(r.opciones).toHaveLength(6)
+    expect(callsFor(create, 'sencilla')).toHaveLength(2)
+    expect(callsFor(create, 'elaborada')).toHaveLength(1)
+    expect(callsFor(create, 'sencilla')[1]!.messages[0]!.content.at(-1)!.text).toContain('no cuadra con los macros')
   })
 
-  it('no son 3 + 3 → reintenta; repetir una ya vista → reintenta', async () => {
-    const bad = six().map((o) => ({ ...o, tipo: 'sencilla' as const, tiempoMin: 10 }))
-    const a = client({ input: { opciones: bad } }, { input: { opciones: six() } })
+  it('tipo equivocado → reintenta; repetir una ya vista → reintenta', async () => {
+    const a = kindClient({ sencilla: [{ input: { opciones: elaborate() } }, { input: { opciones: simple() } }], elaborada: [{ input: { opciones: elaborate() } }] })
     expect((await suggestMeals(a.client, 'm', req(), { deadline: deadline() })).attempts).toBe(2)
-    expect(params(a.create, 1).messages[0]!.content.at(-1)!.text).toContain('exactamente 3 sencillas y 3 elaboradas')
-    const b = client({ input: { opciones: six() } }, { input: { opciones: six().map((o, i) => ({ ...o, nombre: `${o.nombre} ${i}` })) } })
+    expect(callsFor(a.create, 'sencilla')[1]!.messages[0]!.content.at(-1)!.text).toContain('exactamente 3 opciones de tipo "sencilla"')
+    const renamed = simple().map((o, i) => ({ ...o, nombre: `${o.nombre} ${i}` }))
+    const b = kindClient({ sencilla: [{ input: { opciones: simple() } }, { input: { opciones: renamed } }], elaborada: [{ input: { opciones: elaborate() } }] })
     const r = await suggestMeals(b.client, 'm', req({}, ['Wrap de pollo']), { deadline: deadline() })
     expect(r.attempts).toBe(2)
-    expect(params(b.create, 1).messages[0]!.content.at(-1)!.text).toContain('ya se la propusiste')
+    expect(callsFor(b.create, 'sencilla')[1]!.messages[0]!.content.at(-1)!.text).toContain('ya se la propusiste')
   })
 
-  it('dos fallos → invalid_suggestions', async () => {
-    const bad = { input: { opciones: six().slice(0, 5) } }
+  it('falla una tanda → devuelve la otra con aviso', async () => {
+    const bad = { input: { opciones: elaborate().slice(0, 2) } }
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    await expect(suggestMeals(client(bad, bad).client, 'm', req(), { deadline: deadline() })).rejects.toMatchObject({ code: 'invalid_suggestions', status: 502 })
+    const { client: c } = kindClient({ sencilla: [{ input: { opciones: simple() } }], elaborada: [bad, bad] })
+    const r = await suggestMeals(c, 'm', req(), { deadline: deadline() })
+    expect(r.opciones.map((o) => o.id)).toEqual(['s1', 's2', 's3'])
+    expect(r.aviso).toContain('más elaboradas')
+    spy.mockRestore()
+  })
+
+  it('fallan las dos → el error (invalid_suggestions o timeout)', async () => {
+    const bad = { input: { opciones: simple().slice(0, 2) } }
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    await expect(suggestMeals(kindClient({ sencilla: [bad, bad], elaborada: [bad, bad] }).client, 'm', req(), { deadline: deadline() })).rejects.toMatchObject({ code: 'invalid_suggestions', status: 502 })
+    await expect(suggestMeals(kindClient({ sencilla: [{ stop_reason: 'throw' }], elaborada: [{ stop_reason: 'throw' }] }).client, 'm', req(), { deadline: deadline() })).rejects.toBeInstanceOf(Anthropic.APIConnectionTimeoutError)
     spy.mockRestore()
   })
 })
@@ -183,7 +221,7 @@ describe('endpoints', () => {
     new Request(`https://app.test${path}`, { method: 'POST', headers: { 'content-type': 'application/json', [SECRET_HEADER]: secret }, body: JSON.stringify(body) })
 
   it('MEAL_MODEL (Haiku por defecto) y RECIPE_MODEL (Sonnet por defecto), configurables', async () => {
-    const a = client({ input: { opciones: six() } })
+    const a = kindClient({ sencilla: [{ input: { opciones: simple() } }], elaborada: [{ input: { opciones: elaborate() } }] })
     const res = await createAiHandlers({ env: ENV, makeClient: () => a.client }).mealSuggestions(post('/api/meal-suggestions', req()))
     expect(res.status).toBe(200)
     expect(await res.json()).toMatchObject({ opciones: [{ id: 's1' }, {}, {}, {}, {}, {}] })

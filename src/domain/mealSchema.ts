@@ -15,6 +15,7 @@ export type Utensil = (typeof UTENSILS)[number]
 export const MEAL_IDS = ['breakfast', 'lunch', 'dinner', 'snack'] as const
 export const MEAL_GOALS = ['deficit', 'mantenimiento', 'superavit'] as const
 export const SUGGESTION_KINDS = ['sencilla', 'elaborada'] as const
+export type SuggestionKind = (typeof SUGGESTION_KINDS)[number]
 export const DIFFICULTIES = ['facil', 'media', 'dificil'] as const
 
 /** Límites de las opciones (las reglas del enunciado). */
@@ -79,12 +80,15 @@ export const SuggestionSchema = z.object({
 })
 export type Suggestion = z.infer<typeof SuggestionSchema>
 
+/** Una llamada por tipo (en paralelo): 3 opciones del tipo pedido. */
 export const SuggestionsToolSchema = z.object({
-  opciones: z.array(SuggestionSchema).length(OPTIONS_PER_KIND * 2).describe('Exactamente 3 sencillas y 3 elaboradas'),
+  opciones: z.array(SuggestionSchema).length(OPTIONS_PER_KIND).describe('Exactamente 3 opciones del tipo pedido'),
 })
 
 export interface MealSuggestionsResponse {
   opciones: Suggestion[]
+  /** Si una de las dos tandas falló: se muestran las que sí llegaron. */
+  aviso?: string
   model: string
 }
 
@@ -99,11 +103,17 @@ export function macrosCoherent(m: { kcal: number; proteina: number; carbohidrato
 /** Tiempo máximo de las elaboradas: el de las reglas, sin pasar del que prefiere el usuario (mín. 15). */
 export const elaborateMaxMin = (prefMax: number): number => Math.min(ELABORATE_MAX_MIN, Math.max(SIMPLE_MAX_MIN, prefMax))
 
-/** Reglas de las 6 opciones que el esquema no expresa (vacío = válidas). */
-export function suggestionErrors(opciones: readonly Suggestion[], opts: { tiempoMaxMin: number; excluir?: readonly string[] }): string[] {
+/**
+ * Reglas que el esquema no expresa (vacío = válidas). Con `kind`: una tanda de 3 de ese tipo;
+ * sin él: las 6 juntas (3 sencillas + 3 elaboradas).
+ */
+export function suggestionErrors(opciones: readonly Suggestion[], opts: { tiempoMaxMin: number; excluir?: readonly string[]; kind?: SuggestionKind }): string[] {
   const errors: string[] = []
   const simple = opciones.filter((o) => o.tipo === 'sencilla')
-  if (simple.length !== OPTIONS_PER_KIND || opciones.length - simple.length !== OPTIONS_PER_KIND) {
+  if (opts.kind) {
+    const wrong = opciones.filter((o) => o.tipo !== opts.kind).length
+    if (opciones.length !== OPTIONS_PER_KIND || wrong) errors.push(`Tienen que ser exactamente ${OPTIONS_PER_KIND} opciones de tipo "${opts.kind}" (hay ${opciones.length}, ${wrong} de otro tipo).`)
+  } else if (simple.length !== OPTIONS_PER_KIND || opciones.length - simple.length !== OPTIONS_PER_KIND) {
     errors.push(`Tienen que ser exactamente ${OPTIONS_PER_KIND} sencillas y ${OPTIONS_PER_KIND} elaboradas (hay ${simple.length} sencillas y ${opciones.length - simple.length} elaboradas).`)
   }
   const maxElaborate = elaborateMaxMin(opts.tiempoMaxMin)
