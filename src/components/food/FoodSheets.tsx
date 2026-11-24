@@ -9,6 +9,9 @@ import { FoodFormView } from './FoodFormView'
 
 // Foto o descripción con IA: se descarga al abrirla
 const EstimateFlow = lazy(() => import('./EstimateFlow'))
+// "¿Qué como?" y recetas con IA
+const SuggestFlow = lazy(() => import('./SuggestFlow'))
+const RecipeSheet = lazy(() => import('./RecipeView'))
 
 const TITLES = { add: 'Añadir a', scan: 'Escanear para', quantity: '', form: 'Alimento' } as const
 
@@ -21,7 +24,11 @@ export function FoodSheets({ date }: { date: string }) {
     : sheet.kind === 'quantity'
       ? mealLabel
       : sheet.kind === 'estimate'
-        ? sheet.mode === 'photo' ? 'Foto con IA' : 'Describir comida'
+        ? sheet.mode === 'photo' ? 'Foto con IA' : sheet.mode === 'draft' ? 'Me la he comido' : 'Describir comida'
+        : sheet.kind === 'suggest'
+          ? '¿Qué como?'
+          : sheet.kind === 'recipe'
+            ? 'Receta'
         : sheet.kind === 'form'
           ? TITLES.form
           : `${TITLES[sheet.kind]} ${mealLabel.toLowerCase()}`
@@ -32,7 +39,17 @@ export function FoodSheets({ date }: { date: string }) {
       {sheet?.kind === 'scan' && <ScanFlow mealType={sheet.mealType} />}
       {sheet?.kind === 'estimate' && (
         <Suspense fallback={<p className="py-8 text-center text-neutral-400">Cargando…</p>}>
-          <EstimateFlow key={sheet.mode} mode={sheet.mode} mealType={sheet.mealType} date={date} />
+          <EstimateFlow key={sheet.mode} mode={sheet.mode} mealType={sheet.mealType} date={date} prefilled={sheet.draft} />
+        </Suspense>
+      )}
+      {sheet?.kind === 'suggest' && (
+        <Suspense fallback={<p className="py-8 text-center text-neutral-400">Cargando…</p>}>
+          <SuggestFlow mealType={sheet.mealType} today={date} />
+        </Suspense>
+      )}
+      {sheet?.kind === 'recipe' && (
+        <Suspense fallback={<p className="py-8 text-center text-neutral-400">Cargando…</p>}>
+          <RecipeSheet option={sheet.option} mealType={sheet.mealType} />
         </Suspense>
       )}
       {sheet?.kind === 'quantity' && (

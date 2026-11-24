@@ -79,7 +79,7 @@ const MEALS: Record<MealType, number[]> = {
 async function main() {
   const t0 = performance.now()
   const db = createDb('fake-data')
-  await saveProfile({ sex: 'male', birthDate: '1995-05-10', heightCm: 180, weightKg: 78, activityLevel: 'moderate', goal: 'gain', trainingGoal: 'hypertrophy', daysPerWeek: 4, sessionMinutes: 75, equipment: ['barbell', 'dumbbell', 'machine', 'cable', 'bodyweight'], limitations: '' }, start.getTime(), db)
+  await saveProfile({ sex: 'male', birthDate: '1995-05-10', heightCm: 180, weightKg: 78, activityLevel: 'moderate', goal: 'gain', trainingGoal: 'hypertrophy', daysPerWeek: 4, sessionMinutes: 75, equipment: ['barbell', 'dumbbell', 'machine', 'cable', 'bodyweight'], limitations: '', foodDislikes: '', diet: 'omnivora', budget: 'medio', utensils: ['sarten', 'microondas'], maxCookMinutes: 30 }, start.getTime(), db)
   const foods: Food[] = []
   for (const f of FOODS) foods.push(await saveFood(f, start.getTime(), {}, db))
 

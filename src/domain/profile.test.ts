@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { validateProfileForm, type ProfileForm } from './profile'
 
 const training = { trainingGoal: 'hypertrophy', daysPerWeek: 4, sessionMinutes: 60, equipment: ['dumbbell', 'barbell'], limitations: '  rodilla izquierda ' } as const
-const valid: ProfileForm = { sex: 'male', birthDate: '1995-06-15', heightCm: '178', weightKg: '80,5', activityLevel: 'moderate', goal: 'gain', ...training, equipment: [...training.equipment] }
+const meals = { foodDislikes: ' coliflor ', diet: 'vegetariana', budget: 'bajo', utensils: ['horno', 'sarten'], maxCookMinutes: 20 } as const
+const valid: ProfileForm = { sex: 'male', birthDate: '1995-06-15', heightCm: '178', weightKg: '80,5', activityLevel: 'moderate', goal: 'gain', ...training, equipment: [...training.equipment], ...meals, utensils: [...meals.utensils] }
 const TODAY = '2026-11-22'
 
 describe('validateProfileForm', () => {
@@ -12,6 +13,7 @@ describe('validateProfileForm', () => {
       value: {
         sex: 'male', birthDate: '1995-06-15', heightCm: 178, weightKg: 80.5, activityLevel: 'moderate', goal: 'gain',
         trainingGoal: 'hypertrophy', daysPerWeek: 4, sessionMinutes: 60, equipment: ['barbell', 'dumbbell'], limitations: 'rodilla izquierda',
+        foodDislikes: 'coliflor', diet: 'vegetariana', budget: 'bajo', utensils: ['sarten', 'horno'], maxCookMinutes: 20,
       },
     })
   })
@@ -33,6 +35,11 @@ describe('validateProfileForm', () => {
     [{ sessionMinutes: 300 }, 'sessionMinutes'],
     [{ trainingGoal: 'zumba' }, 'trainingGoal'],
     [{ limitations: 'x'.repeat(501) }, 'limitations'],
+    [{ diet: 'paleo' }, 'diet'],
+    [{ budget: 'alto' }, 'budget'],
+    [{ utensils: [] }, 'utensils'],
+    [{ maxCookMinutes: 0 }, 'maxCookMinutes'],
+    [{ foodDislikes: 'x'.repeat(301) }, 'foodDislikes'],
   ] as const)('rechaza %o', (patch, field) => {
     const r = validateProfileForm({ ...valid, ...patch } as ProfileForm, TODAY)
     expect(r.ok).toBe(false)

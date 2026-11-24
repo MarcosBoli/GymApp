@@ -40,7 +40,7 @@ function prepare(body: unknown, maxBytes = AI_MAX_BODY_BYTES): { secret: string;
 }
 
 /** Llama a una función /api con el secreto del dispositivo. Lanza AiRequestError con mensaje claro. */
-export async function callAi<T>(path: '/api/health' | '/api/plan' | '/api/food-estimate', body?: unknown): Promise<T> {
+export async function callAi<T>(path: '/api/health' | '/api/plan' | '/api/food-estimate' | '/api/meal-suggestions' | '/api/recipe', body?: unknown): Promise<T> {
   // La foto viaja en base64: su endpoint admite cuerpos mayores que el límite general
   const { secret, payload } = prepare(body, path === '/api/food-estimate' ? FOOD_ESTIMATE_MAX_BODY_BYTES : AI_MAX_BODY_BYTES)
 

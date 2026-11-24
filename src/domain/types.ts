@@ -1,6 +1,7 @@
 import type { PromotionState } from './ranking'
 import type { WorkoutSummary } from './summary'
 import type { PlanEquipment, TrainingGoal, WeekRating } from './planSchema'
+import type { Budget, Diet, Recipe, Suggestion, Utensil } from './mealSchema'
 
 /**
  * Tipos de las entidades persistidas. Puros (sin Dexie) para que domain/ no dependa de la BD.
@@ -30,6 +31,12 @@ export interface UserProfile {
   sessionMinutes?: number
   equipment?: PlanEquipment[]
   limitations?: string
+  /** Preferencias de comida para el recomendador con IA (opcionales: perfiles antiguos). */
+  foodDislikes?: string
+  diet?: Diet
+  budget?: Budget
+  utensils?: Utensil[]
+  maxCookMinutes?: number
   updatedAt: Timestamp
 }
 
@@ -127,12 +134,26 @@ export interface Food {
   /** Ración por defecto sugerida al añadirlo. */
   servingG?: number
   isFavorite?: boolean
-  /** 'ia-foto' / 'ia-texto': estimado con IA desde una foto o una descripción (valores por 100 g calculados; la foto no se guarda). */
-  source?: 'openfoodfacts' | 'manual' | 'ia-foto' | 'ia-texto'
+  /** 'ia-foto' / 'ia-texto' / 'ia-receta': estimado con IA desde una foto, una descripción o una receta recomendada (valores por 100 g calculados; la foto no se guarda). */
+  source?: 'openfoodfacts' | 'manual' | AiFoodSource
   createdAt?: Timestamp
 }
 
+export type AiFoodSource = 'ia-foto' | 'ia-texto' | 'ia-receta'
+
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack'
+
+/** Receta generada con IA (Dexie v9): caché por nombre para no volver a gastar IA y favoritos ("Mis recetas"). */
+export interface SavedRecipe {
+  id: string
+  /** Nombre normalizado (único): la misma opción reutiliza su receta. */
+  key: string
+  option: Suggestion
+  recipe: Recipe
+  isFavorite: boolean
+  createdAt: Timestamp
+  updatedAt: Timestamp
+}
 
 export interface Meal {
   id: string

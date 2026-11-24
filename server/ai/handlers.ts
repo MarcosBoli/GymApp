@@ -8,6 +8,8 @@ import { generatePlan } from './plan.js'
 import { PlanRequestSchema } from '../../src/domain/planSchema.js'
 import { FOOD_ESTIMATE_MAX_BODY_BYTES, FoodEstimateRequestSchema } from '../../src/domain/foodEstimateSchema.js'
 import { estimateFood } from './foodEstimate.js'
+import { MealSuggestRequestSchema, RecipeRequestSchema } from '../../src/domain/mealSchema.js'
+import { generateRecipe, suggestMeals } from './meals.js'
 
 export const SECRET_HEADER = 'x-app-secret'
 
@@ -50,8 +52,8 @@ export function createAiHandlers({ env, makeClient = createAnthropicClient, now 
     /** Comprueba secreto, configuración y que la API key ve los dos modelos (sin gastar tokens). */
     health: (request: Request) =>
       guarded(request, 'GET', async (config, client) => {
-        for (const model of new Set([config.planModel, config.chatModel, config.foodModel])) await client.models.retrieve(model, {}, { timeout: 8000, maxRetries: 0 })
-        return json({ ok: true, models: { plan: config.planModel, chat: config.chatModel, food: config.foodModel } })
+        for (const model of new Set([config.planModel, config.chatModel, config.foodModel, config.mealModel, config.recipeModel])) await client.models.retrieve(model, {}, { timeout: 8000, maxRetries: 0 })
+        return json({ ok: true, models: { plan: config.planModel, chat: config.chatModel, food: config.foodModel, meal: config.mealModel, recipe: config.recipeModel } })
       }),
 
     /** Chat del coach: respuesta en streaming (NDJSON) de CHAT_MODEL. */
@@ -80,6 +82,26 @@ export function createAiHandlers({ env, makeClient = createAnthropicClient, now 
         if (!body.success) throw new HttpError('invalid_request', 400)
         const result = await estimateFood(client, config.foodModel, body.data, { deadline: started + FOOD_BUDGET_MS, now })
         return json(result)
+      }),
+
+    /** Qué comer: 6 opciones (3 sencillas + 3 elaboradas) ajustadas a lo que queda del día (MEAL_MODEL). */
+    mealSuggestions: (request: Request) =>
+      guarded(request, 'POST', async (config, client) => {
+        const started = now()
+        const body = MealSuggestRequestSchema.safeParse(await readJsonBody(request, AI_MAX_BODY_BYTES))
+        if (!body.success) throw new HttpError('invalid_request', 400)
+        const r = await suggestMeals(client, config.mealModel, body.data, { deadline: started + FOOD_BUDGET_MS, now })
+        return json({ opciones: r.value, model: r.model, attempts: r.attempts, usage: r.usage })
+      }),
+
+    /** Receta de la opción elegida, con ingredientes en gramos que suman sus macros (RECIPE_MODEL). */
+    recipe: (request: Request) =>
+      guarded(request, 'POST', async (config, client) => {
+        const started = now()
+        const body = RecipeRequestSchema.safeParse(await readJsonBody(request, AI_MAX_BODY_BYTES))
+        if (!body.success) throw new HttpError('invalid_request', 400)
+        const r = await generateRecipe(client, config.recipeModel, body.data, { deadline: started + FOOD_BUDGET_MS, now })
+        return json({ receta: r.value, model: r.model, attempts: r.attempts, usage: r.usage })
       }),
   }
 }

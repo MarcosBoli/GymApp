@@ -66,9 +66,9 @@ const chatBody = { messages: [{ role: 'user', content: '¿Cuántas series hago?'
 
 describe('configuración', () => {
   it('modelos por defecto y configurables', () => {
-    expect(readAiConfig(ENV)).toEqual({ ok: true, config: { apiKey: 'sk-test', appSecret: 's3cr3t', planModel: 'claude-sonnet-5-5', chatModel: 'claude-haiku-5-5', foodModel: 'claude-sonnet-5-5' } })
-    const r = readAiConfig({ ...ENV, PLAN_MODEL: ' claude-opus-5-5 ', CHAT_MODEL: '', FOOD_MODEL: 'claude-haiku-5-5' })
-    expect(r.ok && r.config).toMatchObject({ planModel: 'claude-opus-5-5', chatModel: 'claude-haiku-5-5', foodModel: 'claude-haiku-5-5' })
+    expect(readAiConfig(ENV)).toEqual({ ok: true, config: { apiKey: 'sk-test', appSecret: 's3cr3t', planModel: 'claude-sonnet-5-5', chatModel: 'claude-haiku-5-5', foodModel: 'claude-sonnet-5-5', mealModel: 'claude-haiku-5-5', recipeModel: 'claude-sonnet-5-5' } })
+    const r = readAiConfig({ ...ENV, PLAN_MODEL: ' claude-opus-5-5 ', CHAT_MODEL: '', FOOD_MODEL: 'claude-haiku-5-5', MEAL_MODEL: 'claude-sonnet-5-5', RECIPE_MODEL: 'claude-opus-5-5' })
+    expect(r.ok && r.config).toMatchObject({ planModel: 'claude-opus-5-5', chatModel: 'claude-haiku-5-5', foodModel: 'claude-haiku-5-5', mealModel: 'claude-sonnet-5-5', recipeModel: 'claude-opus-5-5' })
   })
 
   it('indica qué falta', () => {
@@ -255,7 +255,7 @@ describe('llamadas a Claude', () => {
     const { client, create, retrieve } = fakeClient()
     const h = createAiHandlers({ env: ENV, makeClient: () => client })
     const r = await call(h.health, new Request('https://app.test/api/health', { headers: { [SECRET_HEADER]: 's3cr3t' } }))
-    expect(r.body).toEqual({ ok: true, models: { plan: 'claude-sonnet-5-5', chat: 'claude-haiku-5-5', food: 'claude-sonnet-5-5' } })
+    expect(r.body).toEqual({ ok: true, models: { plan: 'claude-sonnet-5-5', chat: 'claude-haiku-5-5', food: 'claude-sonnet-5-5', meal: 'claude-haiku-5-5', recipe: 'claude-sonnet-5-5' } })
     // Cada modelo distinto se comprueba una vez (FOOD_MODEL coincide con PLAN_MODEL por defecto)
     expect(retrieve.mock.calls.map((c) => c[0])).toEqual(['claude-sonnet-5-5', 'claude-haiku-5-5'])
     expect(create).not.toHaveBeenCalled()

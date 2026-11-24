@@ -23,6 +23,7 @@ const NOW = new Date(2026, 10, 23, 10).getTime()
 const profile: ProfileValues = {
   sex: 'male', birthDate: '1995-05-10', heightCm: 180, weightKg: 80, activityLevel: 'moderate', goal: 'gain',
   trainingGoal: 'strength', daysPerWeek: 3, sessionMinutes: 60, equipment: ['barbell'], limitations: 'Lumbar delicada',
+  foodDislikes: '', diet: 'omnivora', budget: 'medio', utensils: ['sarten'], maxCookMinutes: 30,
 }
 
 const output: PlanOutput = {

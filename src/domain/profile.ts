@@ -1,5 +1,6 @@
 import type { ActivityLevel, DateKey, Goal, Sex } from './types'
 import { PLAN_EQUIPMENT, TRAINING_GOALS, type PlanEquipment, type TrainingGoal } from './planSchema'
+import { BUDGETS, DIETS, UTENSILS, type Budget, type Diet, type Utensil } from './mealSchema'
 import { parseDecimal } from './number'
 
 export const ACTIVITY_LEVELS: { id: ActivityLevel; label: string }[] = [
@@ -22,6 +23,12 @@ export const DAYS_OPTIONS = [2, 3, 4, 5, 6] as const
 export const MINUTES_OPTIONS = [30, 45, 60, 75, 90, 120] as const
 export const LIMITATIONS_MAX = 500
 
+export const DIET_LABELS: Record<Diet, string> = { omnivora: 'Omnívora', vegetariana: 'Vegetariana', vegana: 'Vegana', pescetariana: 'Pescetariana' }
+export const BUDGET_LABELS: Record<Budget, string> = { bajo: 'Bajo', medio: 'Medio' }
+export const UTENSIL_LABELS: Record<Utensil, string> = { sarten: 'Sartén', horno: 'Horno', microondas: 'Microondas', airfryer: 'Airfryer' }
+export const COOK_MINUTES_OPTIONS = [10, 15, 20, 30, 45, 60] as const
+export const DISLIKES_MAX = 300
+
 export interface ProfileForm {
   sex: Sex | ''
   birthDate: string
@@ -34,6 +41,11 @@ export interface ProfileForm {
   sessionMinutes: number
   equipment: PlanEquipment[]
   limitations: string
+  foodDislikes: string
+  diet: Diet
+  budget: Budget
+  utensils: Utensil[]
+  maxCookMinutes: number
 }
 
 export interface ProfileValues {
@@ -48,6 +60,11 @@ export interface ProfileValues {
   sessionMinutes: number
   equipment: PlanEquipment[]
   limitations: string
+  foodDislikes: string
+  diet: Diet
+  budget: Budget
+  utensils: Utensil[]
+  maxCookMinutes: number
 }
 
 export type ProfileErrors = Partial<Record<keyof ProfileForm, string>>
@@ -79,6 +96,13 @@ export function validateProfileForm(
   if (equipment.length === 0) errors.equipment = 'Elige al menos un tipo de material.'
   if (form.limitations.length > LIMITATIONS_MAX) errors.limitations = `Máximo ${LIMITATIONS_MAX} caracteres.`
 
+  if (!DIETS.includes(form.diet)) errors.diet = 'Elige un tipo de dieta.'
+  if (!BUDGETS.includes(form.budget)) errors.budget = 'Elige un presupuesto.'
+  const utensils = UTENSILS.filter((u) => form.utensils.includes(u))
+  if (utensils.length === 0) errors.utensils = 'Elige al menos un utensilio.'
+  if (!Number.isInteger(form.maxCookMinutes) || form.maxCookMinutes < 5 || form.maxCookMinutes > 180) errors.maxCookMinutes = 'Entre 5 y 180 minutos.'
+  if (form.foodDislikes.length > DISLIKES_MAX) errors.foodDislikes = `Máximo ${DISLIKES_MAX} caracteres.`
+
   if (Object.keys(errors).length > 0) return { ok: false, errors }
   return {
     ok: true,
@@ -94,6 +118,11 @@ export function validateProfileForm(
       sessionMinutes: form.sessionMinutes,
       equipment,
       limitations: form.limitations.trim(),
+      foodDislikes: form.foodDislikes.trim(),
+      diet: form.diet,
+      budget: form.budget,
+      utensils,
+      maxCookMinutes: form.maxCookMinutes,
     },
   }
 }

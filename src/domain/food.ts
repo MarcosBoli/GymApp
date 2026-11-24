@@ -38,10 +38,10 @@ export const macroKcal = (n: Pick<Nutrition, 'proteinG' | 'carbsG' | 'fatG'>) =>
 
 /** Línea secundaria de un alimento en las listas: marca, o de dónde salieron sus valores. */
 export const foodSubtitle = (food: Pick<Food, 'brand' | 'source'>): string =>
-  food.brand ?? (food.source === 'ia-foto' ? 'Estimado con IA (foto)' : food.source === 'ia-texto' ? 'Estimado con IA (descripción)' : 'Sin marca')
+  food.brand ?? (food.source === 'ia-foto' ? 'Estimado con IA (foto)' : food.source === 'ia-texto' ? 'Estimado con IA (descripción)' : food.source === 'ia-receta' ? 'Receta con IA' : 'Sin marca')
 
 /** ¿Alimento estimado con IA (foto o texto)? */
-export const isAiEstimatedFood = (food: Pick<Food, 'source'>): boolean => food.source === 'ia-foto' || food.source === 'ia-texto'
+export const isAiEstimatedFood = (food: Pick<Food, 'source'>): boolean => food.source === 'ia-foto' || food.source === 'ia-texto' || food.source === 'ia-receta'
 
 /** Copia de los valores del alimento para guardar en un mealItem. */
 export function mealItemSnapshot(food: Food): Pick<MealItem, 'foodId' | 'foodName' | 'kcal' | 'proteinG' | 'carbsG' | 'fatG'> {

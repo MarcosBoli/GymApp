@@ -30,7 +30,7 @@ src/
   main.tsx     Arranque: registro del SW, storage.persist(), render
   index.css    Tailwind + tema + utilidades safe-area (pt-safe, pb-safe, pl-safe, pr-safe)
 public/        Iconos PWA/iOS (generados desde assets-src/logo.png)
-api/           Funciones serverless de Vercel (entradas finas: health, chat, plan, food-estimate)
+api/           Funciones serverless de Vercel (entradas finas: health, chat, plan, food-estimate, meal-suggestions, recipe)
 server/ai/     Lógica de las funciones: secreto, límites, validación, llamada a Claude, errores (+ tests)
 ```
 
@@ -90,10 +90,11 @@ server/ai/     Lógica de las funciones: secreto, límites, validación, llamada
   - Gráficas Recharts sin animación (`isAnimationActive={false}`) y ≤ ~120 puntos (`bucketWeightTrend` agrega por semanas).
   - Pantallas con varias consultas: render progresivo (cada bloque al llegar sus datos, con placeholder) en vez de esperar a todas.
   - `npm run fake-data` genera un año de datos realista (`fake-data/`, ignorado en git) para importar desde Perfil y medir.
+- **Barra de pestañas** (`BottomTabBar.tsx`, `src/domain/navigation.ts`): el indicador (pastilla + línea roja con brillo) se mueve por índice con `translateX` y un muelle (`bounce` 0,22, 0,5 s) sobre un motion value, y se estira con la velocidad (`indicatorStretch`). NO usar `layoutId`: la barra es `fixed` y la animación de layout medida con el scroll de la página lo hacía bajar y saltar. `activeTabIndex` decide la pestaña (subrutas incluidas: `/entrenar/plan` → Entrenar). Con movimiento reducido, salta sin animar.
 - **iOS/UX**: franja con desenfoque bajo la status bar (`AppShell`), `ScrollRestoration` por pestaña, recordatorio de backup en Perfil y punto en la pestaña si hay datos y la última copia tiene más de 14 días (`backupReminder`). El SW busca actualización al volver a primer plano.
 - **IA (funciones serverless de Vercel)** (`api/`, `server/ai/`, `src/lib/aiClient.ts`, `src/domain/aiErrors.ts`):
   - `api/*.ts` son entradas finas (firma web `export default { fetch }`); la lógica está en `server/ai/` con dependencias inyectadas y tests sin red. Imports con extensión `.js` (ESM de Node); Vercel compila con el `compilerOptions` del `tsconfig.json` raíz (no sigue `references`).
-  - SDK oficial `@anthropic-ai/sdk` solo en el servidor. Variables: `ANTHROPIC_API_KEY`, `APP_SECRET` (obligatorias), `PLAN_MODEL` (def. `claude-sonnet-5-5`), `CHAT_MODEL` (def. `claude-haiku-5-5`), `FOOD_MODEL` (def. `claude-sonnet-5-5`). Nunca exponer la key al cliente. `/api/health` comprueba cada modelo distinto una vez.
+  - SDK oficial `@anthropic-ai/sdk` solo en el servidor. Variables: `ANTHROPIC_API_KEY`, `APP_SECRET` (obligatorias), `PLAN_MODEL` (def. `claude-sonnet-5-5`), `CHAT_MODEL` (def. `claude-haiku-5-5`), `FOOD_MODEL` (def. `claude-sonnet-5-5`), `MEAL_MODEL` (def. `claude-haiku-5-5`), `RECIPE_MODEL` (def. `claude-sonnet-5-5`). Nunca exponer la key al cliente. `/api/health` comprueba cada modelo distinto una vez.
   - Cada petición lleva `x-app-secret` (comparación en tiempo constante; 401 si no coincide). El secreto vive en `localStorage` del dispositivo (Perfil › Asistente IA), fuera de los backups.
   - Cuerpo ≤ `AI_MAX_BODY_BYTES` (64 KB, comprobado en app y servidor; `/api/food-estimate` admite hasta `FOOD_ESTIMATE_MAX_BODY_BYTES` = 1,5 MB por la foto en base64), validación de forma y tamaños; `maxDuration` 60 s (vercel.json) con timeouts del SDK por debajo.
   - Errores: clases tipadas del SDK → códigos de `aiErrors.ts` (sin saldo, límite de gasto, timeout, JSON inválido…) con mensaje en español; el cliente también traduce respuestas que no son nuestras (504 de Vercel, sin conexión, /api no desplegada).
@@ -118,6 +119,15 @@ server/ai/     Lógica de las funciones: secreto, límites, validación, llamada
   - Preguntas: chips por pregunta (opciones + "No lo sé"; sin contestar = "No lo sé") y "Calcular"; `buildEstimateRequest` envía todas las tandas con sus respuestas.
   - Borrador (`FoodDraftItem` con valores por 100 g): gramos editables con recálculo proporcional, confianza (texto + color), "Supuesto: …" bajo cada alimento, borrar/añadir a mano, totales arriba, selector de comida y "Guardar en …".
   - `saveEstimatedFoods`: un `food` por alimento con `source: 'ia-foto'` (si hubo foto) o `'ia-texto'` (por 100 g, ración = gramos; se reutiliza cualquier alimento estimado con IA con el mismo nombre) + sus `mealItems` → salen en recientes y se reutilizan sin IA. La foto NUNCA se guarda.
+- **"¿Qué como?": recomendador de comidas y recetas** (`src/domain/mealSchema.ts`, `src/domain/mealSuggestContext.ts`, `src/domain/recipes.ts`, `server/ai/meals.ts`, `server/ai/tools.ts`, `src/db/mealSuggest.ts`, `src/db/recipes.ts`, `src/components/food/SuggestFlow.tsx`, `RecipeView.tsx`):
+  - Preferencias en Perfil › Comidas (`UserProfile`: `foodDislikes`, `diet`, `budget`, `utensils`, `maxCookMinutes`); sin ellas (`mealPrefsFromProfile` → null) la hoja pide rellenarlas.
+  - `buildMealSuggestContext` (puro): objetivo (déficit/mantenimiento/superávit), lo que QUEDA hoy (`remainingToday`, puede ser negativo), objetivo de la comida (`mealTarget`: reparto 25/35/10/30 entre las comidas que faltan), `ligera` si queda < 250 kcal, preferencias, nombres de las comidas de los últimos 3 días y petición libre. Comida por defecto según la hora (`mealForHour`).
+  - `server/ai/tools.ts`: bucle compartido `callToolWithRetry` (tool_choice automático, UN reintento con los errores si queda tiempo, negativa → `refused`) y `toolFromZod`; lo usan food-estimate, meal-suggestions y recipe.
+  - `/api/meal-suggestions` (MEAL_MODEL): 6 opciones, 3 `sencilla` (≤ 15 min, ≤ 6 ingredientes) + 3 `elaborada` (≤ 45 min o el máximo del perfil); `suggestionErrors` exige 3+3, kcal ≈ 4P+4C+9G (±10 %), límites, nombres únicos y fuera de `excluir` ("Otras opciones" manda todo lo ya visto). Ids normalizados `s1..s3`/`e1..e3`.
+  - `/api/recipe` (RECIPE_MODEL): ingredientes con gramos, medida casera y macros; `recipeErrors` exige que sumen lo prometido (±10 %) y coherencia por ingrediente; los totales se recalculan desde los ingredientes.
+  - Dexie v9: `recipes` (`&key` = nombre normalizado): caché de recetas (reabrir no gasta IA) y favoritas → "Mis recetas" en Comida. "Buscar en la web" = búsqueda de Google construida en la app (`webSearchUrl`), nunca URLs del modelo.
+  - "Me la he comido": abre el borrador editable de la estimación (`EstimateFlow` con `prefilled`) con los ingredientes de la receta (`draftFromRecipe`) o, sin receta, la ración estimada (`draftFromSuggestion`); se guarda con `source: 'ia-receta'`.
+  - Entradas: botón en Comida (hoy) y en Inicio si quedan kcal (abre la hoja en Comida).
 - `MotionConfig reducedMotion="user"`: con "Reducir movimiento" de iOS no hay desplazamientos animados.
 - Textos de la UI en español. Rutas en español.
 - Cámara (`getUserMedia`, p. ej. escáner de códigos de barras) **solo funciona en HTTPS** → probar en las previews de Vercel, no en `http://<ip-local>`.

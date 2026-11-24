@@ -3,7 +3,7 @@
  * validación de la entrada, tandas de preguntas con sus respuestas y la petición a
  * /api/food-estimate. Todo puro.
  */
-import type { Food } from './types'
+import type { AiFoodSource } from './types'
 import { DONT_KNOW, FOOD_DESCRIPTION_MAX, type AskedQuestion, type FoodEstimateRequest } from './foodEstimateSchema'
 
 /** Una tanda de preguntas y lo que ha elegido el usuario (id de pregunta → opción). */
@@ -48,4 +48,4 @@ export function buildEstimateRequest(input: { description: string; image?: strin
 }
 
 /** Origen con el que se guardan los alimentos estimados. */
-export const estimateSource = (hasImage: boolean): Extract<Food['source'], 'ia-foto' | 'ia-texto'> => (hasImage ? 'ia-foto' : 'ia-texto')
+export const estimateSource = (hasImage: boolean): Extract<AiFoodSource, 'ia-foto' | 'ia-texto'> => (hasImage ? 'ia-foto' : 'ia-texto')
