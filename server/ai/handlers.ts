@@ -6,8 +6,8 @@ import { errorResponse, HttpError, json, readJsonBody, secretMatches } from './h
 import { validateChatRequest } from './validate.js'
 import { generatePlan } from './plan.js'
 import { PlanRequestSchema } from '../../src/domain/planSchema.js'
-import { FOOD_PHOTO_MAX_BODY_BYTES, FoodPhotoRequestSchema } from '../../src/domain/foodPhotoSchema.js'
-import { estimateFoodPhoto } from './foodPhoto.js'
+import { FOOD_ESTIMATE_MAX_BODY_BYTES, FoodEstimateRequestSchema } from '../../src/domain/foodEstimateSchema.js'
+import { estimateFood } from './foodEstimate.js'
 
 export const SECRET_HEADER = 'x-app-secret'
 
@@ -19,7 +19,7 @@ export interface HandlerDeps {
 
 /** Presupuesto de /api/plan: un poco menos que el maxDuration (60 s) de la función. */
 export const PLAN_BUDGET_MS = 57_000
-/** Presupuesto de /api/food-photo (un intento + reintento si queda tiempo). */
+/** Presupuesto de /api/food-estimate (un intento + reintento si queda tiempo). */
 export const FOOD_BUDGET_MS = 57_000
 /** Tiempo máximo de una respuesta del chat en streaming (luego se corta como truncada). */
 export const CHAT_BUDGET_MS = 55_000
@@ -72,13 +72,13 @@ export function createAiHandlers({ env, makeClient = createAnthropicClient, now 
         return json(result)
       }),
 
-    /** Foto de comida → estimación nutricional (tool use validado con zod, 1 reintento). */
-    foodPhoto: (request: Request) =>
+    /** Comida por texto, foto o ambos → estimación o preguntas de aclaración (tool use validado con zod, 1 reintento). */
+    foodEstimate: (request: Request) =>
       guarded(request, 'POST', async (config, client) => {
         const started = now()
-        const body = FoodPhotoRequestSchema.safeParse(await readJsonBody(request, FOOD_PHOTO_MAX_BODY_BYTES))
+        const body = FoodEstimateRequestSchema.safeParse(await readJsonBody(request, FOOD_ESTIMATE_MAX_BODY_BYTES))
         if (!body.success) throw new HttpError('invalid_request', 400)
-        const result = await estimateFoodPhoto(client, config.foodModel, body.data, { deadline: started + FOOD_BUDGET_MS, now })
+        const result = await estimateFood(client, config.foodModel, body.data, { deadline: started + FOOD_BUDGET_MS, now })
         return json(result)
       }),
   }

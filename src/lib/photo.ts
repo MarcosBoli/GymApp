@@ -4,7 +4,7 @@ export const PHOTO_MAX_SIDE = 1024
 export const PHOTO_JPEG_QUALITY = 0.8
 
 export interface PreparedPhoto {
-  /** JPEG en base64 (sin cabecera) para /api/food-photo. */
+  /** JPEG en base64 (sin cabecera) para /api/food-estimate. */
   base64: string
   /** Para la miniatura. */
   dataUrl: string

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { FoodPhotoEstimate } from './foodPhotoSchema'
+import type { EstimateToolInput } from './foodEstimateSchema'
 import {
   addDraftItem,
   draftFromEstimate,
@@ -11,13 +11,13 @@ import {
   removeDraftItem,
   setDraftGrams,
   validateManualItem,
-} from './foodPhoto'
+} from './foodDraft'
 
-const estimate: FoodPhotoEstimate = {
+const estimate: EstimateToolInput = {
   reconocida: true,
   items: [
-    { nombre: ' Arroz blanco cocido ', gramos: 150, kcal: 195, proteina: 4.5, carbohidratos: 42, grasa: 0.6, confianza: 'alta', nota: '' },
-    { nombre: 'Pollo a la plancha', gramos: 120, kcal: 220, proteina: 37, carbohidratos: 0, grasa: 8, confianza: 'media', nota: ' con aceite ' },
+    { nombre: ' Arroz blanco cocido ', gramos: 150, kcal: 195, proteina: 4.5, carbohidratos: 42, grasa: 0.6, confianza: 'alta', supuesto: '' },
+    { nombre: 'Pollo a la plancha', gramos: 120, kcal: 220, proteina: 37, carbohidratos: 0, grasa: 8, confianza: 'media', supuesto: ' con aceite ' },
   ],
   totales: { kcal: 415, proteina: 41.5, carbohidratos: 42, grasa: 8.6 },
   comentario: '',
@@ -27,10 +27,10 @@ describe('borrador desde la estimación', () => {
   const draft = draftFromEstimate(estimate)
 
   it('valores por 100 g, nombres y notas limpios, confianza', () => {
-    expect(draft[0]).toMatchObject({ key: 'ia0', name: 'Arroz blanco cocido', grams: 150, confidence: 'alta', note: '' })
+    expect(draft[0]).toMatchObject({ key: 'ia0', name: 'Arroz blanco cocido', grams: 150, confidence: 'alta', assumption: '' })
     expect(draft[0]!.per100.kcal).toBeCloseTo(130)
     expect(draft[0]!.per100.proteinG).toBeCloseTo(3)
-    expect(draft[1]).toMatchObject({ key: 'ia1', note: 'con aceite', confidence: 'media' })
+    expect(draft[1]).toMatchObject({ key: 'ia1', assumption: 'con aceite', confidence: 'media' })
   })
 
   it('la porción reproduce la estimación y los totales suman', () => {

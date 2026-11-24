@@ -1,6 +1,6 @@
 import { AI_MAX_BODY_BYTES, aiError, aiErrorFromResponse, isAiErrorCode, type AiErrorInfo } from '../domain/aiErrors'
 import { CHAT_STREAM_CONTENT_TYPE, splitChatEvents } from '../domain/chatStream'
-import { FOOD_PHOTO_MAX_BODY_BYTES } from '../domain/foodPhotoSchema'
+import { FOOD_ESTIMATE_MAX_BODY_BYTES } from '../domain/foodEstimateSchema'
 import type { ChatTurn } from '../domain/coachChat'
 import { getAiSecret } from './aiSecret'
 
@@ -40,9 +40,9 @@ function prepare(body: unknown, maxBytes = AI_MAX_BODY_BYTES): { secret: string;
 }
 
 /** Llama a una función /api con el secreto del dispositivo. Lanza AiRequestError con mensaje claro. */
-export async function callAi<T>(path: '/api/health' | '/api/plan' | '/api/food-photo', body?: unknown): Promise<T> {
+export async function callAi<T>(path: '/api/health' | '/api/plan' | '/api/food-estimate', body?: unknown): Promise<T> {
   // La foto viaja en base64: su endpoint admite cuerpos mayores que el límite general
-  const { secret, payload } = prepare(body, path === '/api/food-photo' ? FOOD_PHOTO_MAX_BODY_BYTES : AI_MAX_BODY_BYTES)
+  const { secret, payload } = prepare(body, path === '/api/food-estimate' ? FOOD_ESTIMATE_MAX_BODY_BYTES : AI_MAX_BODY_BYTES)
 
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), CLIENT_TIMEOUT_MS)
