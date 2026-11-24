@@ -12,3 +12,6 @@ fake-data
 .env
 .env.*
 !.env.example
+
+# Claude Code: config local de cada equipo (ruta del vault de Obsidian)
+.claude/settings.local.json

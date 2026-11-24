@@ -134,6 +134,15 @@ npx vercel dev              # app + funciones /api en local (lee .env.local; ver
 
 Desarrollo en Windows: los scripts son multiplataforma y `.gitattributes` fuerza finales de línea LF.
 
+## Memoria del proyecto (Obsidian)
+
+Las notas del proyecto viven en el vault de Obsidian, en la carpeta `Proyectos/GymApp`, añadida como directorio adicional en `.claude/settings.local.json` (no se sube a git: la ruta cambia en cada equipo). Notas: `GymApp` (índice), `Visión`, `Rangos`, `IA`, `Arquitectura`, `Roadmap`, `Decisiones`, `Sesiones` y `Mapa.canvas`.
+
+- **Al empezar una sesión** (o si Marcos pregunta "¿en qué nos quedamos?"): lee `GymApp`, `Roadmap` y la última entrada de `Sesiones`, resume el estado y propón el siguiente paso del Roadmap.
+- **Al terminar una tarea o cuando Marcos diga "cerramos"**, antes del commit: mueve lo hecho a "Hecho" en `Roadmap` (con fecha), apunta en `Decisiones` las decisiones técnicas con su motivo (usa la plantilla de la nota) y añade arriba en `Sesiones` una entrada con fecha, qué se hizo y qué queda. Si cambia algo de rangos, IA o stack, actualiza `Rangos`, `IA` o `Arquitectura`.
+- Reglas del vault: enlaces internos siempre como `[[wikilinks]]`, frontmatter YAML con `tags` y `fecha` en notas nuevas, no borrar ni renombrar notas sin preguntar, no tocar `.obsidian/`.
+- Si la carpeta de notas no está accesible, avisa a Marcos en vez de seguir sin ella.
+
 ## Flujo de trabajo (Claude)
 
 Al terminar un cambio, sin pedir confirmación: hacer commit, push a la rama de trabajo, abrir PR contra `main` (o actualizar el existente) y vigilar el PR (checks, comentarios, reviews) para corregir lo que falle.
