@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildExerciseIndex,
+  exerciseMuscleNames,
   findPersonalRecords,
   formatRoutineTarget,
   formatSetsLine,
@@ -80,6 +81,34 @@ describe('parseSetInput', () => {
   })
 })
 
+describe('exerciseMuscleNames', () => {
+  const muscles = [
+    { id: 'chest', name: 'Pecho', group: 'chest', order: 1 },
+    { id: 'front_delts', name: 'Hombro anterior', group: 'shoulders', order: 5 },
+    { id: 'triceps', name: 'Tríceps', group: 'arms', order: 9 },
+  ] as const
+
+  it('separa principales y secundarios en el orden del catálogo de músculos', () => {
+    const map = exerciseMuscleNames(
+      [
+        { exerciseId: 'dips', muscleId: 'triceps', factor: 1 },
+        { exerciseId: 'dips', muscleId: 'front_delts', factor: 0.5 },
+        { exerciseId: 'dips', muscleId: 'chest', factor: 1 },
+        { exerciseId: 'pushdown', muscleId: 'triceps', factor: 1 },
+      ],
+      muscles,
+    )
+    expect(map.get('dips')).toEqual({ primary: ['Pecho', 'Tríceps'], secondary: ['Hombro anterior'] })
+    expect(map.get('pushdown')).toEqual({ primary: ['Tríceps'], secondary: [] })
+    expect(map.get('nope')).toBeUndefined()
+  })
+
+  it('músculo desconocido: usa su id', () => {
+    const map = exerciseMuscleNames([{ exerciseId: 'x', muscleId: 'neck', factor: 0.5 }], muscles)
+    expect(map.get('x')).toEqual({ primary: [], secondary: ['neck'] })
+  })
+})
+
 describe('searchExercises', () => {
   const items = buildExerciseIndex(
     [
@@ -107,8 +136,14 @@ describe('searchExercises', () => {
   )
   const ids = (q: string) => searchExercises(items, q).map((i) => i.id)
 
-  it('indexa solo los músculos principales', () => {
+  it('indexa principales y secundarios por separado', () => {
     expect(items[0]!.primaryMuscles).toEqual(['Pecho'])
+    expect(items[0]!.secondaryMuscles).toEqual(['Tríceps'])
+    expect(items[2]!.secondaryMuscles).toEqual([])
+  })
+
+  it('los secundarios no cuentan en la búsqueda', () => {
+    expect(ids('triceps')).toEqual([])
   })
 
   it('sin búsqueda: todos en orden alfabético', () => {

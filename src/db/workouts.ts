@@ -3,6 +3,7 @@ import type { RoutineExercise, Workout, WorkoutSet } from '../domain/types'
 import { buildWorkoutSummary } from '../domain/summary'
 import type { PromotionState } from '../domain/ranking'
 import { toDateKey } from '../domain/dates'
+import { exerciseMuscleNames } from '../domain/workout'
 import { DAY_MS } from '../domain/ranking'
 import { RANK_CONFIG } from '../data/ranking'
 import { db as defaultDb, type GymDB } from './db'
@@ -238,6 +239,7 @@ export async function getCatalog(db: GymDB = defaultDb) {
     exerciseMuscles,
     exerciseById: new Map(exercises.map((e) => [e.id, e])),
     muscleById: new Map(muscles.map((m) => [m.id, m])),
+    musclesByExercise: exerciseMuscleNames(exerciseMuscles, muscles),
   }
 }
 export type Catalog = Awaited<ReturnType<typeof getCatalog>>

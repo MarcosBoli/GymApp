@@ -70,6 +70,7 @@ server/ai/     Lógica de las funciones: secreto, límites, validación, llamada
   - `finishWorkout` calcula el "Resumen de partida" con `buildWorkoutSummary` (puro), lo guarda en `workout.summary` y persiste las promos en `rankStates` (v3). El resumen no se recalcula al recargar.
   - Temporizador de descanso: solo `endsAt` (timestamp) en Zustand persistido; el restante es `endsAt - ahora`. Sonido con Web Audio desbloqueado en el toque de "Guardar serie" (`unlockAudio`).
   - Pesos de ejercicios `equipment: 'bodyweight'` = lastre (vacío = 0, negativo = asistencia).
+  - Músculos de cada ejercicio: `exerciseMuscleNames` (puro, principales factor 1 / secundarios) → `catalog.musclesByExercise`; se pintan con `ExerciseMuscles` ("Pecho · también Tríceps") en la tarjeta del entreno, el plan y los buscadores. La búsqueda solo usa los principales.
 - **Comida y energía** (`src/db/food.ts`, `src/db/barcode.ts`, `src/domain/food.ts`, `src/domain/energy.ts`):
   - Escáner: `@zxing/browser` (cámara trasera, EAN/UPC), cargado con `lazy`. `resolveBarcode`: local → Open Food Facts (se guarda en `foods` si viene completo) → alta manual con el código precargado.
   - Recientes se derivan de las comidas; favoritos con `food.isFavorite`. `mealItems` guardan copia de los valores por 100 g y `createdAt` para el orden.
