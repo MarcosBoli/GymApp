@@ -25,17 +25,20 @@ export function AddFood({ mealType, today }: { mealType: MealType; today: string
         placeholder="Buscar en mis alimentos"
         className="h-12 w-full rounded-xl border border-border bg-surface px-4 outline-none focus:border-accent/60"
       />
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-2">
         <button type="button" onClick={() => open({ kind: 'scan', mealType })} className="h-12 rounded-xl bg-accent font-semibold text-bg active:scale-[0.98]">
-          Escanear código
+          Escanear
         </button>
-        <button type="button" onClick={() => open({ kind: 'photo', mealType })} className="h-12 rounded-xl bg-accent font-semibold text-bg active:scale-[0.98]">
+        <button type="button" onClick={() => open({ kind: 'estimate', mealType, mode: 'photo' })} className="h-12 rounded-xl bg-accent font-semibold text-bg active:scale-[0.98]">
           Foto
+        </button>
+        <button type="button" onClick={() => open({ kind: 'estimate', mealType, mode: 'text' })} className="h-12 rounded-xl bg-accent font-semibold text-bg active:scale-[0.98]">
+          Describir
         </button>
         <button
           type="button"
           onClick={() => open({ kind: 'form', mealType, draft: { name: query.trim() } })}
-          className="col-span-2 h-12 rounded-xl border border-border font-semibold active:bg-white/5"
+          className="col-span-3 h-12 rounded-xl border border-border font-semibold active:bg-white/5"
         >
           Crear alimento
         </button>

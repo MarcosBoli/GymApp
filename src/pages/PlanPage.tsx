@@ -12,6 +12,7 @@ import {
   swapExercise,
   updatePlanExercise,
 } from '../domain/plan'
+import { ExerciseMuscles } from '../components/train/ExerciseMuscles'
 import { buildExerciseIndex, searchExercises } from '../domain/workout'
 import { addDays, fromDateKey } from '../domain/dates'
 import { db } from '../db/db'
@@ -200,6 +201,7 @@ function ExerciseRow(props: {
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="font-medium">{catalog.exerciseById.get(e.exerciseId)?.name ?? e.exerciseId}</div>
+          <ExerciseMuscles muscles={catalog.musclesByExercise.get(e.exerciseId)} />
           <div className="text-sm text-neutral-400 tabular-nums">{formatPlanTarget(e, props.weight)}</div>
           {e.notes && <div className="text-xs text-neutral-500">{e.notes}</div>}
         </div>
@@ -273,7 +275,7 @@ function ExercisePickerSheet(props: { picker: Picker; catalog: Catalog; equipmen
           <li key={o.id}>
             <button type="button" onClick={() => props.onPick(o.id)} className="flex w-full flex-col items-start border-b border-border/60 py-3 text-left active:bg-white/5">
               <span className="font-medium">{o.name}</span>
-              <span className="text-sm text-neutral-500">{o.primaryMuscles.join(', ')}</span>
+              <ExerciseMuscles muscles={{ primary: o.primaryMuscles, secondary: o.secondaryMuscles }} />
             </button>
           </li>
         ))}
