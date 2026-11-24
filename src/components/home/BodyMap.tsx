@@ -1,5 +1,5 @@
 import { AnimatePresence, motion, type PanInfo } from 'framer-motion'
-import { BODY_BASE, BODY_MUSCLES, mirrorPoints, type BodyView } from '../../data/bodyMap'
+import { BODY_PATHS, type BodyView } from '../../data/bodyMap'
 import type { MuscleStatus } from '../../domain/progress'
 import { formatRank } from '../../domain/ranking'
 import { RANK_CONFIG } from '../../data/ranking'
@@ -9,7 +9,6 @@ const UNRANKED = '#2e2828'
 const SWIPE_PX = 50
 
 const fill = (m?: MuscleStatus) => (m?.displayed ? (RANK_CONFIG.tiers[m.displayed.tierIndex]?.color ?? UNRANKED) : UNRANKED)
-const both = (points: string, center?: boolean) => (center ? [points] : [points, mirrorPoints(points)])
 
 /** Silueta delantera/trasera; swipe horizontal o los botones para girarla. Cada músculo es tocable. */
 export function BodyMap({ muscles }: { muscles: MuscleStatus[] }) {
@@ -34,11 +33,11 @@ export function BodyMap({ muscles }: { muscles: MuscleStatus[] }) {
         </div>
       </div>
 
-      <div className="relative mx-auto h-[380px] w-[200px] touch-pan-y overflow-hidden">
+      <div className="relative mx-auto h-[400px] w-[224px] touch-pan-y overflow-hidden">
         <AnimatePresence initial={false} mode="popLayout">
           <motion.svg
             key={view}
-            viewBox="0 0 200 380"
+            viewBox={BODY_PATHS[view].viewBox}
             className="absolute inset-0 h-full w-full cursor-grab"
             drag="x"
             dragConstraints={{ left: 0, right: 0 }}
@@ -50,8 +49,10 @@ export function BodyMap({ muscles }: { muscles: MuscleStatus[] }) {
             transition={{ duration: 0.25 }}
             aria-label={view === 'front' ? 'Vista delantera' : 'Vista trasera'}
           >
-            {BODY_BASE.flatMap((s, i) => both(s.points, s.center).map((p, j) => <polygon key={`b${i}-${j}`} points={p} fill="#1f1f27" stroke="#2a2a33" strokeWidth="1" />))}
-            {BODY_MUSCLES[view].map(({ muscleId, shapes }) => {
+            {BODY_PATHS[view].base.map((d, i) => (
+              <path key={`b${i}`} d={d} fill="#26262e" />
+            ))}
+            {BODY_PATHS[view].muscles.map(({ muscleId, d: paths }) => {
               const m = byId.get(muscleId)
               const label = `${m?.name ?? muscleId}: ${m?.displayed ? formatRank(m.displayed) : 'sin rango'}${m?.inactive ? ', inactivo' : ''}`
               return (
@@ -62,22 +63,20 @@ export function BodyMap({ muscles }: { muscles: MuscleStatus[] }) {
                   aria-label={label}
                   onClick={() => select(muscleId)}
                   onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && select(muscleId)}
-                  className="cursor-pointer outline-none [&:focus-visible>polygon]:stroke-white"
+                  className="cursor-pointer outline-none [&:focus-visible>path]:stroke-white"
                 >
-                  {shapes.flatMap((s, i) =>
-                    both(s.points).map((p, j) => (
-                      <polygon
-                        key={`${i}-${j}`}
-                        points={p}
-                        fill={fill(m)}
-                        fillOpacity={m?.inactive ? 0.45 : 1}
-                        stroke="#0b0909"
-                        strokeWidth="1.4"
-                        strokeLinejoin="round"
-                        strokeDasharray={m?.inactive ? '3 2' : undefined}
-                      />
-                    )),
-                  )}
+                  {paths.map((d, i) => (
+                    <path
+                      key={i}
+                      d={d}
+                      fill={fill(m)}
+                      fillOpacity={m?.inactive ? 0.45 : 1}
+                      stroke={m?.inactive ? '#8a8a96' : 'none'}
+                      strokeWidth="2"
+                      strokeLinejoin="round"
+                      strokeDasharray={m?.inactive ? '7 5' : undefined}
+                    />
+                  ))}
                 </g>
               )
             })}
