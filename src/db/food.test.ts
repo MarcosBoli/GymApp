@@ -12,7 +12,7 @@ import {
   listRecentFoods,
   logBodyweight,
   saveFood,
-  saveFoodPhotoEstimate,
+  saveEstimatedFoods,
   toggleFavorite,
   updateMealItemGrams,
 } from './food'
@@ -156,20 +156,20 @@ describe('mealItems.date (v5)', () => {
   })
 })
 
-describe('saveFoodPhotoEstimate', () => {
-  const draft = (over: Partial<import('../domain/foodPhoto').PhotoDraftItem> = {}) => ({
+describe('saveEstimatedFoods', () => {
+  const draft = (over: Partial<import('../domain/foodDraft').FoodDraftItem> = {}) => ({
     key: 'ia0',
     name: 'Arroz blanco cocido',
     grams: 150,
     per100: { kcal: 130, proteinG: 3, carbsG: 28, fatG: 0.4 },
     confidence: 'alta' as const,
-    note: '',
+    assumption: '',
     ...over,
   })
 
   it('crea alimentos ia-foto (por 100 g) y los mealItems; aparecen en recientes', async () => {
     const db = fresh()
-    const items = await saveFoodPhotoEstimate('2026-11-23', 'lunch', [draft(), draft({ key: 'ia1', name: 'Pollo a la plancha', grams: 120, per100: { kcal: 183.3, proteinG: 30.83, carbsG: 0, fatG: 6.67 } })], T, db)
+    const items = await saveEstimatedFoods('2026-11-23', 'lunch', [draft(), draft({ key: 'ia1', name: 'Pollo a la plancha', grams: 120, per100: { kcal: 183.3, proteinG: 30.83, carbsG: 0, fatG: 6.67 } })], 'ia-foto', T, db)
     expect(items.map((i) => [i.foodName, i.grams])).toEqual([['Arroz blanco cocido', 150], ['Pollo a la plancha', 120]])
     const foods = await db.foods.toArray()
     expect(foods).toHaveLength(2)
@@ -183,11 +183,12 @@ describe('saveFoodPhotoEstimate', () => {
   it('reutiliza el alimento ia-foto con el mismo nombre (sin duplicar) y no toca los manuales', async () => {
     const db = fresh()
     const manual = await saveFood({ name: 'Arroz blanco cocido', kcal: 120, proteinG: 2, carbsG: 27, fatG: 0 }, T, {}, db)
-    await saveFoodPhotoEstimate('2026-11-22', 'dinner', [draft()], T, db)
-    await saveFoodPhotoEstimate('2026-11-23', 'lunch', [draft({ name: 'arroz BLANCO cocido', per100: { kcal: 140, proteinG: 3, carbsG: 30, fatG: 1 } })], T + 10, db)
-    const ia = (await db.foods.toArray()).filter((f) => f.source === 'ia-foto')
+    await saveEstimatedFoods('2026-11-22', 'dinner', [draft()], 'ia-foto', T, db)
+    await saveEstimatedFoods('2026-11-23', 'lunch', [draft({ name: 'arroz BLANCO cocido', per100: { kcal: 140, proteinG: 3, carbsG: 30, fatG: 1 } })], 'ia-texto', T + 10, db)
+    // Reutiliza el estimado por foto aunque ahora venga de una descripción (sin duplicar en recientes)
+    const ia = (await db.foods.toArray()).filter((f) => f.source === 'ia-foto' || f.source === 'ia-texto')
     expect(ia).toHaveLength(1)
-    expect(ia[0]).toMatchObject({ kcal: 140 })
+    expect(ia[0]).toMatchObject({ kcal: 140, source: 'ia-texto' })
     expect(await db.foods.get(manual.id)).toMatchObject({ kcal: 120, source: 'manual' })
     // El histórico conserva su copia de valores
     expect((await getDayMeals('2026-11-22', db)).byType.dinner.items[0]).toMatchObject({ kcal: 130 })

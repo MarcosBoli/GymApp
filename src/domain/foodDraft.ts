@@ -1,15 +1,16 @@
 /**
- * Borrador editable de una estimación por foto: cada alimento guarda sus valores por 100 g,
- * así que al cambiar los gramos kcal y macros se recalculan en proporción. Todo puro.
+ * Borrador editable de una estimación con IA (foto, texto o ambos): cada alimento guarda sus
+ * valores por 100 g, así que al cambiar los gramos kcal y macros se recalculan en proporción.
+ * Todo puro.
  */
 import type { MealType } from './types'
-import type { Confidence, FoodPhotoEstimate } from './foodPhotoSchema'
+import type { Confidence, EstimateToolInput } from './foodEstimateSchema'
 import { nutritionFor, parseGrams, sumNutrition, type FoodValues, type Nutrition } from './food'
 import { parseDecimal } from './number'
 
 export const CONFIDENCE_LABELS: Record<Confidence, string> = { alta: 'Alta', media: 'Media', baja: 'Baja' }
 
-export interface PhotoDraftItem {
+export interface FoodDraftItem {
   key: string
   name: string
   grams: number
@@ -17,7 +18,8 @@ export interface PhotoDraftItem {
   per100: Nutrition
   /** null = añadido a mano. */
   confidence: Confidence | null
-  note: string
+  /** Lo que supuso la IA (cantidad, aceite, versión…), para poder corregirlo. */
+  assumption: string
 }
 
 const round1 = (n: number) => Math.round(n * 10) / 10
@@ -28,28 +30,28 @@ export function per100From(n: Nutrition, grams: number): Nutrition {
   return { kcal: n.kcal * f, proteinG: n.proteinG * f, carbsG: n.carbsG * f, fatG: n.fatG * f }
 }
 
-export function draftFromEstimate(e: FoodPhotoEstimate): PhotoDraftItem[] {
+export function draftFromEstimate(e: Pick<EstimateToolInput, 'items'>): FoodDraftItem[] {
   return e.items.map((it, i) => ({
     key: `ia${i}`,
     name: it.nombre.trim(),
     grams: Math.round(it.gramos),
     per100: per100From({ kcal: it.kcal, proteinG: it.proteina, carbsG: it.carbohidratos, fatG: it.grasa }, it.gramos),
     confidence: it.confianza,
-    note: it.nota.trim(),
+    assumption: it.supuesto.trim(),
   }))
 }
 
-export const draftItemNutrition = (item: Pick<PhotoDraftItem, 'grams' | 'per100'>): Nutrition => nutritionFor(item.per100, item.grams)
+export const draftItemNutrition = (item: Pick<FoodDraftItem, 'grams' | 'per100'>): Nutrition => nutritionFor(item.per100, item.grams)
 
-export const draftTotals = (items: readonly PhotoDraftItem[]): Nutrition => sumNutrition(items.map(draftItemNutrition))
+export const draftTotals = (items: readonly FoodDraftItem[]): Nutrition => sumNutrition(items.map(draftItemNutrition))
 
 /** Cambia los gramos de un alimento (kcal y macros se recalculan solos). Ignora valores no válidos. */
-export function setDraftGrams(items: readonly PhotoDraftItem[], key: string, grams: number): PhotoDraftItem[] {
+export function setDraftGrams(items: readonly FoodDraftItem[], key: string, grams: number): FoodDraftItem[] {
   if (!(grams > 0 && grams <= 5000)) return [...items]
   return items.map((i) => (i.key === key ? { ...i, grams } : i))
 }
 
-export const removeDraftItem = (items: readonly PhotoDraftItem[], key: string): PhotoDraftItem[] => items.filter((i) => i.key !== key)
+export const removeDraftItem = (items: readonly FoodDraftItem[], key: string): FoodDraftItem[] => items.filter((i) => i.key !== key)
 
 // ─── Añadir a mano ─────────────────────────────────────────────────────────
 
@@ -90,15 +92,15 @@ export function validateManualItem(
   return { ok: true, value: { name, grams: grams!, portion } }
 }
 
-export function addDraftItem(items: readonly PhotoDraftItem[], v: { name: string; grams: number; portion: Nutrition }): PhotoDraftItem[] {
+export function addDraftItem(items: readonly FoodDraftItem[], v: { name: string; grams: number; portion: Nutrition }): FoodDraftItem[] {
   const next = 1 + Math.max(-1, ...items.filter((i) => i.key.startsWith('m')).map((i) => Number(i.key.slice(1))))
-  return [...items, { key: `m${next}`, name: v.name, grams: v.grams, per100: per100From(v.portion, v.grams), confidence: null, note: '' }]
+  return [...items, { key: `m${next}`, name: v.name, grams: v.grams, per100: per100From(v.portion, v.grams), confidence: null, assumption: '' }]
 }
 
 // ─── Guardar ───────────────────────────────────────────────────────────────
 
 /** Valores del alimento a guardar (por 100 g, redondeados) con la porción estimada como ración. */
-export function foodValuesFromDraft(item: PhotoDraftItem): FoodValues {
+export function foodValuesFromDraft(item: FoodDraftItem): FoodValues {
   const p = item.per100
   return { name: item.name, kcal: Math.round(p.kcal), proteinG: round1(p.proteinG), carbsG: round1(p.carbsG), fatG: round1(p.fatG), servingG: Math.round(item.grams) }
 }

@@ -175,6 +175,7 @@ describe('foodSubtitle', () => {
   it('marca, estimado por foto o sin marca', () => {
     expect(foodSubtitle({ brand: 'Hacendado', source: 'ia-foto' })).toBe('Hacendado')
     expect(foodSubtitle({ source: 'ia-foto' })).toBe('Estimado con IA (foto)')
+    expect(foodSubtitle({ source: 'ia-texto' })).toBe('Estimado con IA (descripción)')
     expect(foodSubtitle({ source: 'manual' })).toBe('Sin marca')
     expect(foodSubtitle({})).toBe('Sin marca')
   })
