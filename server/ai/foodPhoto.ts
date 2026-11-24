@@ -28,11 +28,15 @@ Responde SIEMPRE llamando a la herramienta registrar_estimacion.`
 export const FOOD_TOOL_NAME = 'registrar_estimacion'
 
 /** Herramienta cuya entrada es la estimación (esquema JSON generado desde zod, como betaZodTool del SDK). */
-export const foodTool = (): Anthropic.Beta.BetaTool => ({
-  name: FOOD_TOOL_NAME,
-  description: 'Registra la estimación nutricional de los alimentos visibles en la foto.',
-  input_schema: z.toJSONSchema(FoodPhotoEstimateSchema, { reused: 'ref' }) as Anthropic.Beta.BetaTool['input_schema'],
-})
+export function foodTool(): Anthropic.Beta.BetaTool {
+  // Sin la clave $schema: es metadato del dialecto y la API no la necesita
+  const { $schema: _dialect, ...schema } = z.toJSONSchema(FoodPhotoEstimateSchema, { reused: 'ref' })
+  return {
+    name: FOOD_TOOL_NAME,
+    description: 'Registra la estimación nutricional de los alimentos visibles en la foto. Llámala siempre, una vez, con la estimación completa (también si la foto no es comida: reconocida false).',
+    input_schema: schema as Anthropic.Beta.BetaTool['input_schema'],
+  }
+}
 
 export interface FoodPhotoResult {
   estimate: FoodPhotoEstimate
@@ -44,7 +48,7 @@ export interface FoodPhotoResult {
 const formatZodIssues = (issues: { path: PropertyKey[]; message: string }[]) => issues.slice(0, 10).map((i) => `${i.path.join('.') || '(raíz)'}: ${i.message}`)
 
 /**
- * Estima la comida de la foto con tool use forzado y valida la entrada de la herramienta
+ * Estima la comida de la foto con tool use y valida la entrada de la herramienta
  * con zod + reglas de coherencia. Si no es válida, reintenta UNA vez explicando los errores
  * (si queda tiempo antes de `deadline`; la función tiene 60 s).
  */
@@ -58,7 +62,7 @@ export async function estimateFoodPhoto(
   const note = req.note?.trim()
   const userContent: Anthropic.Beta.BetaContentBlockParam[] = [
     { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: req.image } },
-    { type: 'text', text: note ? `Nota del usuario: ${note}` : 'Estima lo que hay en esta foto.' },
+    { type: 'text', text: `${note ? `Nota del usuario: ${note}\n\n` : ''}Estima lo que hay en esta foto y llama a la herramienta ${FOOD_TOOL_NAME} con la estimación.` },
   ]
   const usage = { input_tokens: 0, output_tokens: 0 }
   let errors: string[] = []
@@ -80,11 +84,13 @@ export async function estimateFoodPhoto(
     const response = await client.beta.messages.create(
       {
         model,
-        max_tokens: 3000,
+        // Holgura para el razonamiento (Sonnet 5.5 piensa por defecto y cuenta en max_tokens)
+        max_tokens: 8000,
         system: FOOD_SYSTEM,
         messages,
+        // tool_choice "auto" (por defecto): Sonnet/Opus 5.5 y Fable 5.1+ rechazan con 400 el uso
+        // forzado ({type: "tool"} / "any"). El prompt pide la llamada; si no llega, se reintenta.
         tools: [foodTool()],
-        tool_choice: { type: 'tool', name: FOOD_TOOL_NAME },
         ...modelOptions(model, 'medium'),
       },
       { timeout: Math.max(5_000, Math.min(45_000, remaining - 2_000)), maxRetries: 0 },

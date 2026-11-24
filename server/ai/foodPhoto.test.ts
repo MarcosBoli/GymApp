@@ -12,14 +12,20 @@ const chicken: FoodPhotoItem = { nombre: 'Pechuga de pollo a la plancha', gramos
 // Totales del modelo mal sumados a propósito: la app los recalcula
 const valid: FoodPhotoEstimate = { reconocida: true, items: [rice, chicken], totales: { kcal: 999, proteina: 1, carbohidratos: 1, grasa: 1 }, comentario: 'Arroz con pollo a la plancha.' }
 
-type Reply = { input?: unknown; stop_reason?: string; noTool?: boolean }
+type Reply = { input?: unknown; stop_reason?: string; noTool?: boolean; thinking?: boolean }
 function client(...replies: Reply[]) {
   const create = vi.fn(async () => {
     const r = replies.shift()!
     return {
       model: 'claude-sonnet-5-5',
       stop_reason: r.stop_reason ?? 'tool_use',
-      content: r.noTool ? [{ type: 'text', text: 'Veo arroz.' }] : [{ type: 'tool_use', id: 'tu_1', name: FOOD_TOOL_NAME, input: r.input }],
+      content: r.noTool
+        ? [{ type: 'text', text: 'Veo arroz.' }]
+        : [
+            // Sonnet 5.5 piensa por defecto: el bloque de razonamiento llega antes de la llamada
+            ...(r.thinking ? [{ type: 'thinking', thinking: '', signature: 'sig' }, { type: 'text', text: 'Registro la estimación.' }] : []),
+            { type: 'tool_use', id: 'tu_1', name: FOOD_TOOL_NAME, input: r.input },
+          ],
       usage: { input_tokens: 1200, output_tokens: 300 },
     }
   })
@@ -31,7 +37,7 @@ type Params = {
   system: string
   messages: { role: string; content: { type: string; text?: string; source?: { type: string; media_type: string; data: string } }[] }[]
   tools: { name: string; input_schema: Record<string, unknown> }[]
-  tool_choice: { type: string; name: string }
+  tool_choice?: { type: string; name?: string }
   output_config?: { effort: string }
   fallbacks?: string
 }
@@ -39,7 +45,7 @@ const params = (create: ReturnType<typeof vi.fn>, i = 0) => create.mock.calls[i]
 const deadline = () => Date.now() + 57_000
 
 describe('estimateFoodPhoto', () => {
-  it('estimación válida al primer intento con tool use forzado e imagen JPEG', async () => {
+  it('estimación válida al primer intento con tool use (sin forzar) e imagen JPEG', async () => {
     const { client: c, create } = client({ input: valid })
     const r = await estimateFoodPhoto(c, 'claude-sonnet-5-5', { image: IMAGE, note: ' sin aceite en el arroz ' }, { deadline: deadline() })
     expect(r.attempts).toBe(1)
@@ -48,13 +54,17 @@ describe('estimateFoodPhoto', () => {
     expect(r.usage).toEqual({ input_tokens: 1200, output_tokens: 300 })
 
     const [p, o] = params(create)
-    expect(p.tool_choice).toEqual({ type: 'tool', name: FOOD_TOOL_NAME })
+    // Sonnet/Opus 5.5 devuelven 400 con tool_choice forzado ("tool"/"any"): nunca se envía
+    expect(p.tool_choice === undefined || p.tool_choice.type === 'auto').toBe(true)
+    expect(p.max_tokens).toBeGreaterThanOrEqual(8000) // margen para el razonamiento
     expect(p.tools[0]!.name).toBe(FOOD_TOOL_NAME)
     const schema = JSON.stringify(p.tools[0]!.input_schema)
     for (const k of ['nombre', 'gramos', 'kcal', 'proteina', 'carbohidratos', 'grasa', 'confianza', 'nota', 'totales', 'comentario']) expect(schema).toContain(`"${k}"`)
     expect(schema).toContain('"enum":["alta","media","baja"]')
+    expect(p.tools[0]!.input_schema).toMatchObject({ type: 'object' })
+    expect(p.tools[0]!.input_schema).not.toHaveProperty('$schema')
     expect(p.messages[0]!.content[0]).toEqual({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: IMAGE } })
-    expect(p.messages[0]!.content[1]!.text).toBe('Nota del usuario: sin aceite en el arroz')
+    expect(p.messages[0]!.content[1]!.text).toBe(`Nota del usuario: sin aceite en el arroz\n\nEstima lo que hay en esta foto y llama a la herramienta ${FOOD_TOOL_NAME} con la estimación.`)
     expect(p).toMatchObject({ model: 'claude-sonnet-5-5', output_config: { effort: 'medium' }, fallbacks: 'default' })
     expect(o.maxRetries).toBe(0)
     expect(o.timeout).toBeLessThanOrEqual(45_000)
@@ -67,7 +77,12 @@ describe('estimateFoodPhoto', () => {
   it('sin nota: texto genérico', async () => {
     const { client: c, create } = client({ input: valid })
     await estimateFoodPhoto(c, 'claude-sonnet-5-5', { image: IMAGE }, { deadline: deadline() })
-    expect(params(create)[0].messages[0]!.content[1]!.text).toBe('Estima lo que hay en esta foto.')
+    expect(params(create)[0].messages[0]!.content[1]!.text).toBe(`Estima lo que hay en esta foto y llama a la herramienta ${FOOD_TOOL_NAME} con la estimación.`)
+  })
+
+  it('respuesta con razonamiento antes de la llamada (Sonnet 5.5)', async () => {
+    const r = await estimateFoodPhoto(client({ input: valid, thinking: true }).client, 'claude-sonnet-5-5', { image: IMAGE }, { deadline: deadline() })
+    expect(r).toMatchObject({ attempts: 1, estimate: { reconocida: true } })
   })
 
   it('foto que no es comida: reconocida false, sin error', async () => {
