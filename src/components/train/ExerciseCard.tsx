@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import type { Exercise, WorkoutSet } from '../../domain/types'
-import { formatSetsLine, setLabels, suggestPlannedSet } from '../../domain/workout'
+import { formatSetsLine, setLabels, suggestPlannedSet, type ExerciseMuscleNames } from '../../domain/workout'
 import { formatDecimal } from '../../domain/number'
 import { addSet, deleteSet, getLastSessionSets, removeExerciseFromWorkout } from '../../db/workouts'
 import { useRestTimer } from '../../store/restTimer'
@@ -8,10 +8,13 @@ import { useTrainUi } from '../../store/trainUi'
 import { useCoachChatUi } from '../../store/coachChatUi'
 import { unlockAudio } from '../../lib/sound'
 import { SetInput } from './SetInput'
+import { ExerciseMuscles } from './ExerciseMuscles'
 
 interface Props {
   workoutId: string
   exercise: Exercise
+  /** Músculos que entrena (principales y secundarios). */
+  muscles: ExerciseMuscleNames | undefined
   sets: WorkoutSet[]
   expanded: boolean
   target: string
@@ -20,7 +23,7 @@ interface Props {
   notes?: string
 }
 
-export function ExerciseCard({ workoutId, exercise, sets, expanded, target, planned, notes }: Props) {
+export function ExerciseCard({ workoutId, exercise, muscles, sets, expanded, target, planned, notes }: Props) {
   const last = useLiveQuery(async () => ({ sets: await getLastSessionSets(exercise.id, workoutId) }), [exercise.id, workoutId])
   const startRest = useRestTimer((s) => s.start)
   const expand = useTrainUi((s) => s.expand)
@@ -46,6 +49,7 @@ export function ExerciseCard({ workoutId, exercise, sets, expanded, target, plan
       <div className="flex items-start gap-3">
         <button type="button" onClick={() => expand(exercise.id)} className="min-w-0 flex-1 text-left">
           <h2 className="truncate text-lg font-semibold">{exercise.name}</h2>
+          <ExerciseMuscles muscles={muscles} />
           <p className="text-sm text-neutral-500">
             {workingCount} {workingCount === 1 ? 'serie' : 'series'}
             {target && <span> · objetivo {target}</span>}

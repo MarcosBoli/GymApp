@@ -97,6 +97,7 @@ export function ActiveWorkout({ workout }: { workout: Workout }) {
               key={id}
               workoutId={workout.id}
               exercise={exercise}
+              muscles={catalog.musclesByExercise.get(id)}
               sets={sets.filter((s) => s.exerciseId === id)}
               expanded={expanded === id}
               target={planEx ? formatPlanTarget(planEx, planWeight) : target ? formatRoutineTarget(target) : ''}

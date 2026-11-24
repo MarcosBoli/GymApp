@@ -71,11 +71,38 @@ export function parseSetInput(
 
 // ─── Buscador de ejercicios ────────────────────────────────────────────────
 
+export interface ExerciseMuscleNames {
+  /** Músculos principales (factor 1). */
+  primary: string[]
+  /** Músculos secundarios (factor < 1). */
+  secondary: string[]
+}
+
+/** Nombres de los músculos que entrena cada ejercicio, principales y secundarios, en el orden del catálogo de músculos. */
+export function exerciseMuscleNames(
+  exerciseMuscles: readonly ExerciseMuscle[],
+  muscles: readonly Muscle[],
+): Map<string, ExerciseMuscleNames> {
+  const byId = new Map(muscles.map((m) => [m.id, m]))
+  const order = (id: string) => byId.get(id)?.order ?? Number.MAX_SAFE_INTEGER
+  const sorted = [...exerciseMuscles].sort((a, b) => order(a.muscleId) - order(b.muscleId))
+  const result = new Map<string, ExerciseMuscleNames>()
+  for (const em of sorted) {
+    let entry = result.get(em.exerciseId)
+    if (!entry) result.set(em.exerciseId, (entry = { primary: [], secondary: [] }))
+    const name = byId.get(em.muscleId)?.name ?? em.muscleId
+    ;(em.factor === 1 ? entry.primary : entry.secondary).push(name)
+  }
+  return result
+}
+
 export interface ExerciseSearchItem {
   id: string
   name: string
-  /** Nombres de los músculos principales. */
+  /** Nombres de los músculos principales (los únicos que cuentan en la búsqueda). */
   primaryMuscles: string[]
+  /** Nombres de los músculos secundarios (solo para mostrar). */
+  secondaryMuscles: string[]
 }
 
 export function buildExerciseIndex(
@@ -83,13 +110,12 @@ export function buildExerciseIndex(
   exerciseMuscles: readonly ExerciseMuscle[],
   muscles: readonly Muscle[],
 ): ExerciseSearchItem[] {
-  const muscleName = new Map(muscles.map((m) => [m.id, m.name]))
+  const names = exerciseMuscleNames(exerciseMuscles, muscles)
   return exercises.map((e) => ({
     id: e.id,
     name: e.name,
-    primaryMuscles: exerciseMuscles
-      .filter((em) => em.exerciseId === e.id && em.factor === 1)
-      .map((em) => muscleName.get(em.muscleId) ?? em.muscleId),
+    primaryMuscles: names.get(e.id)?.primary ?? [],
+    secondaryMuscles: names.get(e.id)?.secondary ?? [],
   }))
 }
 

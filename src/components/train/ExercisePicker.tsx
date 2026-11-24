@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { buildExerciseIndex, searchExercises } from '../../domain/workout'
 import { addExerciseToWorkout, type Catalog } from '../../db/workouts'
 import { useTrainUi } from '../../store/trainUi'
+import { ExerciseMuscles } from './ExerciseMuscles'
 
 export function ExercisePicker({ workoutId, catalog, selectedIds }: { workoutId: string; catalog: Catalog; selectedIds: string[] }) {
   const { pickerOpen, closePicker, expand } = useTrainUi()
@@ -56,9 +57,9 @@ export function ExercisePicker({ workoutId, catalog, selectedIds }: { workoutId:
                     onClick={() => pick(item.id)}
                     className="flex w-full items-center justify-between border-b border-border/60 py-3.5 text-left active:bg-white/5 disabled:opacity-40"
                   >
-                    <span>
+                    <span className="min-w-0 pr-3">
                       <span className="block font-medium">{item.name}</span>
-                      <span className="block text-sm text-neutral-500">{item.primaryMuscles.join(', ')}</span>
+                      <ExerciseMuscles muscles={{ primary: item.primaryMuscles, secondary: item.secondaryMuscles }} />
                     </span>
                     <span className="text-xl text-accent">{added ? '✓' : '+'}</span>
                   </button>
