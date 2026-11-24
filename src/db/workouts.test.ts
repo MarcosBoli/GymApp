@@ -32,7 +32,7 @@ afterEach(async () => {
 })
 
 const T = new Date(2026, 10, 22, 18).getTime()
-const profile: ProfileValues = { sex: 'male', birthDate: '1995-01-01', heightCm: 180, weightKg: 80, activityLevel: 'moderate', goal: 'gain', trainingGoal: 'hypertrophy', daysPerWeek: 4, sessionMinutes: 60, equipment: ['barbell', 'dumbbell'], limitations: '' }
+const profile: ProfileValues = { sex: 'male', birthDate: '1995-01-01', heightCm: 180, weightKg: 80, activityLevel: 'moderate', goal: 'gain', trainingGoal: 'hypertrophy', daysPerWeek: 4, sessionMinutes: 60, equipment: ['barbell', 'dumbbell'], limitations: '', foodDislikes: '', diet: 'omnivora', budget: 'medio', utensils: ['sarten', 'microondas'], maxCookMinutes: 30 }
 
 describe('entreno en curso', () => {
   it('empezar, añadir ejercicios y series; persiste sin terminar', async () => {

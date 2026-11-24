@@ -2,6 +2,7 @@ import Dexie, { type EntityTable, type Table, type Transaction } from 'dexie'
 import type {
   BodyweightLog,
   ChatMessage,
+  SavedRecipe,
   Exercise,
   ExerciseMuscle,
   Food,
@@ -40,6 +41,7 @@ export type GymDB = Dexie & {
   weeklyPlans: EntityTable<WeeklyPlan, 'id'>
   weekFeedback: EntityTable<WeekFeedback, 'weekStart'>
   chatMessages: EntityTable<ChatMessage, 'id'>
+  recipes: EntityTable<SavedRecipe, 'id'>
 }
 
 export const DB_NAME = 'gymapp'
@@ -141,6 +143,11 @@ export function createDb(name = DB_NAME): GymDB {
 
   // v8: escalera de rangos definitiva (6 tiers × 3 divisiones). Sin cambios de índices.
   db.version(8).stores({}).upgrade(migrateRanksToSixTiers)
+
+  // v9: recetas generadas con IA (caché por nombre normalizado y favoritos, "Mis recetas")
+  db.version(9).stores({
+    recipes: 'id, &key, createdAt',
+  })
 
   // BD nueva (primer arranque): Dexie dispara populate una única vez
   db.on('populate', seedCatalog)

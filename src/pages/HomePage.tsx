@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { adaptiveStatusText, energyOverview, progressOf, type AdaptiveTdee } from '../domain/energy'
 import { toDateKey } from '../domain/dates'
 import { formatDecimal } from '../domain/number'
@@ -19,6 +19,8 @@ import { Ring } from '../components/home/Ring'
 import { WeightQuickLog } from '../components/home/WeightQuickLog'
 import { MACROS } from '../components/food/MacroLegend'
 import { DATA_COLORS } from '../components/dataColors'
+import { mealForHour } from '../domain/mealSuggestContext'
+import { useFoodUi } from '../store/foodUi'
 
 // Recharts es lo más pesado de Inicio: la gráfica llega después de los números
 const WeeklyBalanceChart = lazy(() => import('../components/home/WeeklyBalanceChart'))
@@ -28,6 +30,13 @@ const signed = (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${fmt(Math.abs
 
 export default function HomePage() {
   const today = toDateKey(new Date())
+  const navigate = useNavigate()
+  const suggestMeal = () => {
+    const ui = useFoodUi.getState()
+    ui.setDate(undefined)
+    ui.open({ kind: 'suggest', mealType: mealForHour(new Date().getHours()) })
+    navigate('/comida')
+  }
   const overview = useLiveQuery(async () => energyOverview(await getEnergyInputs(today)), [today])
   const todayWeight = useLiveQuery(async () => ({ kg: (await db.bodyweightLogs.get(today))?.weightKg }), [today])
   const ranks = useLiveQuery(async () => {
@@ -65,6 +74,11 @@ export default function HomePage() {
         ) : (
           <>
             <CaloriesCard consumed={overview.today.kcal} target={overview.target.kcal} tdee={overview.tdee} adaptive={overview.adaptive} />
+            {progressOf(overview.today.kcal, overview.target.kcal).remaining > 0 && (
+              <button type="button" onClick={suggestMeal} className="h-12 w-full rounded-2xl bg-accent font-semibold text-bg active:scale-[0.98]">
+                ¿Qué como?
+              </button>
+            )}
 
             <section className="grid grid-cols-3 gap-2 rounded-2xl border border-border bg-surface p-4" aria-label="Macros de hoy">
               {MACROS.map((m) => {

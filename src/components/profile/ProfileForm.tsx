@@ -5,14 +5,20 @@ import {
   DAYS_OPTIONS,
   EQUIPMENT_LABELS,
   GOALS,
+  BUDGET_LABELS,
+  COOK_MINUTES_OPTIONS,
+  DIET_LABELS,
+  DISLIKES_MAX,
   LIMITATIONS_MAX,
   MINUTES_OPTIONS,
   TRAINING_GOAL_LABELS,
+  UTENSIL_LABELS,
   validateProfileForm,
   type ProfileErrors,
   type ProfileForm as Form,
 } from '../../domain/profile'
 import { PLAN_EQUIPMENT, TRAINING_GOALS } from '../../domain/planSchema'
+import { BUDGETS, DIETS, UTENSILS } from '../../domain/mealSchema'
 import { formatDecimal } from '../../domain/number'
 import { toDateKey } from '../../domain/dates'
 import { db } from '../../db/db'
@@ -34,6 +40,11 @@ export function ProfileForm() {
       sessionMinutes: p?.sessionMinutes ?? 60,
       equipment: p?.equipment ?? [...PLAN_EQUIPMENT],
       limitations: p?.limitations ?? '',
+      foodDislikes: p?.foodDislikes ?? '',
+      diet: p?.diet ?? 'omnivora',
+      budget: p?.budget ?? 'medio',
+      utensils: p?.utensils ?? ['sarten', 'microondas'],
+      maxCookMinutes: p?.maxCookMinutes ?? 30,
     }
   })
   if (!initial) return null
@@ -162,6 +173,63 @@ function FormBody({ initial }: { initial: Form }) {
           value={form.limitations}
           onChange={(e) => set('limitations', e.target.value)}
           placeholder="Ej.: molestia en el hombro derecho al press por encima de la cabeza"
+        />
+      </Field>
+
+      <h3 className="pt-2 text-base font-semibold">Comidas</h3>
+      <p className="-mt-2 text-sm text-neutral-500">La IA las usa para recomendarte qué comer y escribir recetas.</p>
+
+      <Field label="Tipo de dieta" error={errors.diet}>
+        <select className={input} value={form.diet} onChange={(e) => set('diet', e.target.value as Form['diet'])}>
+          {DIETS.map((d) => (
+            <option key={d} value={d}>
+              {DIET_LABELS[d]}
+            </option>
+          ))}
+        </select>
+      </Field>
+
+      <Field label="Presupuesto" error={errors.budget} group>
+        <Segmented options={BUDGETS.map((b) => ({ value: b, label: BUDGET_LABELS[b] }))} value={form.budget} onChange={(v) => set('budget', v)} />
+      </Field>
+
+      <Field label="Utensilios de cocina" error={errors.utensils} group>
+        <div className="flex flex-wrap gap-2">
+          {UTENSILS.map((u) => {
+            const on = form.utensils.includes(u)
+            return (
+              <button
+                key={u}
+                type="button"
+                aria-pressed={on}
+                onClick={() => set('utensils', on ? form.utensils.filter((x) => x !== u) : [...form.utensils, u])}
+                className={`h-10 rounded-full border px-4 text-sm font-medium ${on ? 'border-accent bg-accent/10 text-accent' : 'border-border text-neutral-400'}`}
+              >
+                {on ? '✓ ' : ''}
+                {UTENSIL_LABELS[u]}
+              </button>
+            )
+          })}
+        </div>
+      </Field>
+
+      <Field label="Tiempo máximo para cocinar" error={errors.maxCookMinutes}>
+        <select className={input} value={form.maxCookMinutes} onChange={(e) => set('maxCookMinutes', Number(e.target.value))}>
+          {COOK_MINUTES_OPTIONS.map((m) => (
+            <option key={m} value={m}>
+              {m} min
+            </option>
+          ))}
+        </select>
+      </Field>
+
+      <Field label="Alimentos que no te gustan (opcional)" error={errors.foodDislikes}>
+        <textarea
+          className={`${input} h-20 py-2`}
+          maxLength={DISLIKES_MAX}
+          value={form.foodDislikes}
+          onChange={(e) => set('foodDislikes', e.target.value)}
+          placeholder="Ej.: coliflor, hígado, aceitunas"
         />
       </Field>
 

@@ -1,12 +1,25 @@
 import { create } from 'zustand'
-import type { DateKey, MealType } from '../domain/types'
+import type { AiFoodSource, DateKey, MealType } from '../domain/types'
 import type { FoodDraft } from '../domain/food'
+import type { FoodDraftItem } from '../domain/foodDraft'
+import type { Suggestion } from '../domain/mealSchema'
+
+/** Borrador ya calculado (p. ej. "Me la he comido" de una receta) que se abre directamente para revisar y guardar. */
+export interface PrefilledDraft {
+  items: FoodDraftItem[]
+  comment: string
+  source: AiFoodSource
+}
 
 export type FoodSheet =
   | { kind: 'add'; mealType: MealType }
   | { kind: 'scan'; mealType: MealType }
-  /** Estimación con IA: empieza por la foto o por la descripción (se pueden combinar). */
-  | { kind: 'estimate'; mealType: MealType; mode: 'photo' | 'text' }
+  /** Estimación con IA: empieza por la foto, la descripción (se pueden combinar) o un borrador ya hecho. */
+  | { kind: 'estimate'; mealType: MealType; mode: 'photo' | 'text' | 'draft'; draft?: PrefilledDraft }
+  /** "¿Qué como?": recomendaciones con IA. */
+  | { kind: 'suggest'; mealType: MealType }
+  /** Receta de una opción (de "Mis recetas"). */
+  | { kind: 'recipe'; mealType: MealType; option: Suggestion }
   | { kind: 'quantity'; mealType: MealType; foodId: string; itemId?: string; grams?: number }
   | { kind: 'form'; mealType: MealType; draft?: FoodDraft; foodId?: string; notice?: string }
 

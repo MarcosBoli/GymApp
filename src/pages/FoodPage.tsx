@@ -4,6 +4,8 @@ import { addDays, fromDateKey, toDateKey } from '../domain/dates'
 import { energyOverview } from '../domain/energy'
 import { formatDecimal } from '../domain/number'
 import { getDayMeals, getEnergyInputs } from '../db/food'
+import { listFavoriteRecipes } from '../db/recipes'
+import { mealForHour } from '../domain/mealSuggestContext'
 import { useFoodUi } from '../store/foodUi'
 import { PageHeader } from '../components/layout/PageHeader'
 import { FoodSheets } from '../components/food/FoodSheets'
@@ -17,6 +19,8 @@ export default function FoodPage() {
   const date = selected ?? today
   const day = useLiveQuery(() => getDayMeals(date), [date])
   const overview = useLiveQuery(async () => energyOverview(await getEnergyInputs(date)), [date])
+  const favorites = useLiveQuery(() => listFavoriteRecipes())
+  const suggest = () => open({ kind: 'suggest', mealType: mealForHour(new Date().getHours()) })
 
   return (
     <>
@@ -50,6 +54,33 @@ export default function FoodPage() {
               </span>
             </div>
             <MacroLegend {...day.totals} />
+            {date === today && (
+              <button type="button" onClick={suggest} className="mt-3 h-11 w-full rounded-xl bg-accent font-semibold text-bg active:scale-[0.98]">
+                ¿Qué como?
+              </button>
+            )}
+          </section>
+        )}
+
+        {favorites && favorites.length > 0 && (
+          <section className="rounded-2xl border border-border bg-surface p-4">
+            <h2 className="mb-1 text-lg font-semibold">Mis recetas</h2>
+            <ul>
+              {favorites.map((r) => (
+                <li key={r.id}>
+                  <button
+                    type="button"
+                    onClick={() => open({ kind: 'recipe', mealType: mealForHour(new Date().getHours()), option: r.option })}
+                    className="flex w-full items-center justify-between gap-3 border-t border-border/60 py-2.5 text-left first:border-t-0 active:bg-white/5"
+                  >
+                    <span className="min-w-0 truncate">★ {r.recipe.nombre}</span>
+                    <span className="shrink-0 text-sm text-neutral-400 tabular-nums">
+                      {r.recipe.tiempoTotal} min · {formatDecimal(Math.round(r.recipe.kcal))} kcal
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
           </section>
         )}
 

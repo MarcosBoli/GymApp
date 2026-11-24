@@ -1,6 +1,6 @@
 import { useState, type ChangeEvent } from 'react'
 import type { MealType } from '../../domain/types'
-import { MEAL_TYPES, parseGrams } from '../../domain/food'
+import { parseGrams } from '../../domain/food'
 import { FOOD_DESCRIPTION_MAX, type Confidence, type FoodEstimateResponse } from '../../domain/foodEstimateSchema'
 import { addRound, answerOptions, buildEstimateRequest, estimateSource, selectAnswer, validateEstimateInput, type QuestionRound } from '../../domain/foodEstimate'
 import {
@@ -22,7 +22,8 @@ import { saveEstimatedFoods } from '../../db/food'
 import { AiRequestError, callAi } from '../../lib/aiClient'
 import { clearDescribeDraft, loadDescribeDraft, saveDescribeDraft } from '../../lib/describeDraft'
 import { PhotoReadError, preparePhoto, type PreparedPhoto } from '../../lib/photo'
-import { useFoodUi } from '../../store/foodUi'
+import { useFoodUi, type PrefilledDraft } from '../../store/foodUi'
+import { MealPicker } from './MealPicker'
 
 type Step =
   | { kind: 'compose'; error?: string }
@@ -40,9 +41,10 @@ const g1 = (n: number) => formatDecimal(Math.round(n * 10) / 10)
  * algo importante pregunta (chips de respuesta rápida); el resultado es un borrador editable
  * que se guarda como alimentos reutilizables. La foto no se guarda.
  */
-export default function EstimateFlow({ mode, mealType, date }: { mode: 'photo' | 'text'; mealType: MealType; date: string }) {
+export default function EstimateFlow({ mode, mealType, date, prefilled }: { mode: 'photo' | 'text' | 'draft'; mealType: MealType; date: string; prefilled?: PrefilledDraft }) {
   const close = useFoodUi((s) => s.close)
-  const [step, setStep] = useState<Step>({ kind: 'compose' })
+  // "Me la he comido" de una receta: el borrador ya viene hecho
+  const [step, setStep] = useState<Step>(prefilled ? { kind: 'draft', items: prefilled.items, comment: prefilled.comment } : { kind: 'compose' })
   const [text, setText] = useState(() => (mode === 'text' ? loadDescribeDraft() : ''))
   const [photo, setPhoto] = useState<PreparedPhoto | null>(null)
   const [rounds, setRounds] = useState<QuestionRound[]>([])
@@ -98,8 +100,8 @@ export default function EstimateFlow({ mode, mealType, date }: { mode: 'photo' |
   async function save(items: FoodDraftItem[]) {
     setSaving(true)
     try {
-      await saveEstimatedFoods(date, meal, items, estimateSource(photo !== null), Date.now())
-      clearDescribeDraft()
+      await saveEstimatedFoods(date, meal, items, prefilled?.source ?? estimateSource(photo !== null), Date.now())
+      if (mode === 'text') clearDescribeDraft()
       close()
     } finally {
       setSaving(false)
@@ -116,7 +118,8 @@ export default function EstimateFlow({ mode, mealType, date }: { mode: 'photo' |
         saving={saving}
         onChange={(items) => setStep({ ...step, items })}
         onSave={save}
-        onRestart={edit}
+        onRestart={prefilled ? close : edit}
+        restartLabel={prefilled ? 'Descartar' : 'Descartar y empezar de nuevo'}
       />
     )
   }
@@ -265,27 +268,6 @@ function PickButton(props: { label: string; capture?: boolean; primary?: boolean
   )
 }
 
-function MealPicker({ meal, setMeal }: { meal: MealType; setMeal: (m: MealType) => void }) {
-  return (
-    <fieldset>
-      <legend className="mb-1 text-sm text-neutral-400">Comida</legend>
-      <div className="grid grid-cols-4 gap-1 rounded-xl bg-white/5 p-1">
-        {MEAL_TYPES.map((m) => (
-          <button
-            key={m.id}
-            type="button"
-            aria-pressed={meal === m.id}
-            onClick={() => setMeal(m.id)}
-            className={`h-9 rounded-lg text-sm font-medium ${meal === m.id ? 'bg-accent text-bg' : 'text-neutral-300'}`}
-          >
-            {m.label}
-          </button>
-        ))}
-      </div>
-    </fieldset>
-  )
-}
-
 const CONFIDENCE_STYLE: Record<Confidence, string> = {
   alta: 'border-emerald-400/40 text-emerald-300',
   media: 'border-amber-400/40 text-amber-300',
@@ -301,6 +283,7 @@ function Draft(props: {
   onChange: (items: FoodDraftItem[]) => void
   onSave: (items: FoodDraftItem[]) => void
   onRestart: () => void
+  restartLabel: string
 }) {
   const { step, photo, meal, setMeal, saving, onChange, onSave } = props
   const [adding, setAdding] = useState(false)
@@ -351,7 +334,7 @@ function Draft(props: {
         {SAVE_TO_LABELS[meal]}
       </button>
       <button type="button" onClick={props.onRestart} className="h-11 w-full rounded-xl border border-border font-semibold">
-        Descartar y empezar de nuevo
+        {props.restartLabel}
       </button>
       <p className="text-xs text-neutral-500">Es una estimación: revisa los gramos y los supuestos. Los alimentos se guardan para reutilizarlos sin volver a usar la IA.</p>
     </div>

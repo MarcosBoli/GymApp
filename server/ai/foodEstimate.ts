@@ -1,4 +1,3 @@
-import { z } from 'zod'
 import type Anthropic from '@anthropic-ai/sdk'
 import {
   DONT_KNOW,
@@ -14,8 +13,8 @@ import {
   type FoodEstimateRequest,
   type FoodQuestions,
 } from '../../src/domain/foodEstimateSchema.js'
-import { modelOptions, type AiClient } from './claude.js'
-import { HttpError } from './http.js'
+import type { AiClient } from './claude.js'
+import { callToolWithRetry, formatZodIssues, toolFromZod, type ToolParse } from './tools.js'
 
 export const ESTIMATE_TOOL = 'registrar_estimacion'
 export const QUESTIONS_TOOL = 'hacer_preguntas'
@@ -39,12 +38,6 @@ Preguntas de aclaración (herramienta ${QUESTIONS_TOOL}):
 - Si una respuesta es "${DONT_KNOW}", asume lo más habitual en España y dilo en "supuesto".
 
 Responde SIEMPRE llamando a una herramienta: ${ESTIMATE_TOOL} con la estimación o, solo si hace falta y está disponible, ${QUESTIONS_TOOL}.`
-
-/** Esquema JSON de una herramienta desde zod (como betaZodTool del SDK), sin la clave $schema. */
-function toolFromZod(name: string, description: string, schema: z.ZodType): Anthropic.Beta.BetaTool {
-  const { $schema: _dialect, ...input } = z.toJSONSchema(schema, { reused: 'ref' })
-  return { name, description, input_schema: input as Anthropic.Beta.BetaTool['input_schema'] }
-}
 
 export const estimateTool = () =>
   toolFromZod(ESTIMATE_TOOL, 'Registra la estimación nutricional de lo que ha comido el usuario (también si no es comida: reconocida false).', EstimateToolSchema)
@@ -78,12 +71,9 @@ export interface FoodEstimateResult {
   usage: { input_tokens: number; output_tokens: number }
 }
 
-const formatZodIssues = (issues: { path: PropertyKey[]; message: string }[]) => issues.slice(0, 10).map((i) => `${i.path.join('.') || '(raíz)'}: ${i.message}`)
-
-type Parsed = { ok: true; result: FoodEstimate | FoodQuestions } | { ok: false; errors: string[] }
 
 /** Valida la llamada a una de las herramientas. Las preguntas reciben ids r<tanda>q<n>. */
-function parseToolCall(call: Anthropic.Beta.BetaToolUseBlock | undefined, round: number, canAsk: boolean): Parsed {
+function parseToolCall(call: Anthropic.Beta.BetaToolUseBlock | undefined, round: number, canAsk: boolean): ToolParse<FoodEstimate | FoodQuestions> {
   if (!call || (call.name === QUESTIONS_TOOL && !canAsk)) return { ok: false, errors: [`No llamaste a la herramienta ${ESTIMATE_TOOL}.`] }
   if (call.name === QUESTIONS_TOOL) {
     const parsed = QuestionsToolSchema.safeParse(call.input)
@@ -91,14 +81,14 @@ function parseToolCall(call: Anthropic.Beta.BetaToolUseBlock | undefined, round:
     const errors = questionErrors(parsed.data.questions)
     if (errors.length) return { ok: false, errors }
     const questions = parsed.data.questions.map((q, i) => ({ ...q, id: `r${round}q${i + 1}`, texto: q.texto.trim(), opciones: q.opciones.map((o) => o.trim()) }))
-    return { ok: true, result: { type: 'questions', questions } }
+    return { ok: true, value: { type: 'questions', questions } }
   }
   const parsed = EstimateToolSchema.safeParse(call.input)
   if (!parsed.success) return { ok: false, errors: formatZodIssues(parsed.error.issues) }
   const errors = estimateErrors(parsed.data)
   if (errors.length) return { ok: false, errors }
   // Totales siempre coherentes con los items (la suma del modelo puede venir redondeada o mal)
-  return { ok: true, result: { type: 'estimate', ...parsed.data, totales: sumEstimate(parsed.data.items) } }
+  return { ok: true, value: { type: 'estimate', ...parsed.data, totales: sumEstimate(parsed.data.items) } }
 }
 
 /**
@@ -112,7 +102,6 @@ export async function estimateFood(
   req: FoodEstimateRequest,
   opts: { deadline: number; now?: () => number },
 ): Promise<FoodEstimateResult> {
-  const now = opts.now ?? Date.now
   const round = roundsAsked(req.previousQuestions) + 1
   const canAsk = round <= MAX_QUESTION_ROUNDS
   const tools = canAsk ? [estimateTool(), questionsTool()] : [estimateTool()]
@@ -120,51 +109,18 @@ export async function estimateFood(
     ...(req.image ? [{ type: 'image' as const, source: { type: 'base64' as const, media_type: 'image/jpeg' as const, data: req.image } }] : []),
     { type: 'text', text: buildEstimatePrompt(req) },
   ]
-  const usage = { input_tokens: 0, output_tokens: 0 }
-  let errors: string[] = []
-  let previous = ''
-
-  for (let attempt = 1; attempt <= 2; attempt++) {
-    const remaining = opts.deadline - now()
-    if (attempt === 2 && remaining < 15_000) break
-    const messages: Anthropic.Beta.BetaMessageParam[] = [
-      {
-        role: 'user',
-        content:
-          attempt === 1
-            ? content
-            : [...content, { type: 'text', text: `Tu respuesta anterior no era válida. Corrige estos errores y llama otra vez a una herramienta con la respuesta completa:\n- ${errors.join('\n- ')}\n\nRespuesta anterior:\n${previous}` }],
-      },
-    ]
-
-    const response = await client.beta.messages.create(
-      {
-        model,
-        // Holgura para el razonamiento (Sonnet 5.5 piensa por defecto y cuenta en max_tokens)
-        max_tokens: 8000,
-        system: FOOD_SYSTEM,
-        messages,
-        // tool_choice "auto" (por defecto): Sonnet/Opus 5.5 y Fable 5.1+ rechazan con 400 el uso
-        // forzado ({type: "tool"} / "any"). El prompt pide la llamada; si no llega, se reintenta.
-        tools,
-        ...modelOptions(model, 'medium'),
-      },
-      { timeout: Math.max(5_000, Math.min(45_000, remaining - 2_000)), maxRetries: 0 },
-    )
-    usage.input_tokens += response.usage.input_tokens
-    usage.output_tokens += response.usage.output_tokens
-    if (response.stop_reason === 'refusal') throw new HttpError('refused', 422)
-
-    const call = response.content.find((b): b is Anthropic.Beta.BetaToolUseBlock => b.type === 'tool_use' && (b.name === ESTIMATE_TOOL || b.name === QUESTIONS_TOOL))
-    previous = JSON.stringify(call ? { herramienta: call.name, entrada: call.input } : null).slice(0, 4000)
-    if (response.stop_reason === 'max_tokens') {
-      errors = ['La respuesta se cortó por longitud: sé más conciso y devuelve la respuesta completa.']
-      continue
-    }
-    const parsed = parseToolCall(call, round, canAsk)
-    if (parsed.ok) return { result: parsed.result, model: response.model, attempts: attempt, usage }
-    errors = parsed.errors
-  }
-  console.error('[ai] estimación de comida inválida tras reintento:', errors)
-  throw new HttpError('invalid_estimate', 502)
+  const r = await callToolWithRetry(client, {
+    model,
+    system: FOOD_SYSTEM,
+    content,
+    tools,
+    effort: 'medium',
+    maxTokens: 8000,
+    deadline: opts.deadline,
+    now: opts.now,
+    parse: (call) => parseToolCall(call, round, canAsk),
+    invalidCode: 'invalid_estimate',
+    label: 'estimación de comida',
+  })
+  return { result: r.value, model: r.model, attempts: r.attempts, usage: r.usage }
 }

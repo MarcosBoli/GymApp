@@ -1,4 +1,4 @@
-import type { DateKey, Food, Meal, MealItem, MealType } from '../domain/types'
+import type { AiFoodSource, DateKey, Food, Meal, MealItem, MealType } from '../domain/types'
 import { isAiEstimatedFood, itemNutrition, mealItemSnapshot, sumNutrition, ZERO_NUTRITION, type FoodValues, type Nutrition } from '../domain/food'
 import { foodValuesFromDraft, type FoodDraftItem } from '../domain/foodDraft'
 import { normalizeText } from '../domain/workout'
@@ -89,7 +89,7 @@ export async function saveEstimatedFoods(
   date: DateKey,
   type: MealType,
   items: readonly FoodDraftItem[],
-  source: 'ia-foto' | 'ia-texto',
+  source: AiFoodSource,
   now: number,
   db: GymDB = defaultDb,
 ): Promise<MealItem[]> {
