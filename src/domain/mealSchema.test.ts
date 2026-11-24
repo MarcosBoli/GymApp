@@ -39,10 +39,16 @@ const six = () => [
 ]
 
 describe('opciones', () => {
-  it('exactamente 6 en el esquema', () => {
-    expect(SuggestionsToolSchema.safeParse({ opciones: six() }).success).toBe(true)
-    expect(SuggestionsToolSchema.safeParse({ opciones: six().slice(0, 5) }).success).toBe(false)
-    expect(SuggestionsToolSchema.safeParse({ opciones: [...six(), option()] }).success).toBe(false)
+  it('exactamente 3 por tanda en el esquema', () => {
+    expect(SuggestionsToolSchema.safeParse({ opciones: six().slice(0, 3) }).success).toBe(true)
+    expect(SuggestionsToolSchema.safeParse({ opciones: six().slice(0, 2) }).success).toBe(false)
+    expect(SuggestionsToolSchema.safeParse({ opciones: six() }).success).toBe(false)
+  })
+
+  it('tanda de un tipo: 3 de ese tipo', () => {
+    expect(suggestionErrors(six().slice(0, 3), { tiempoMaxMin: 45, kind: 'sencilla' })).toEqual([])
+    expect(suggestionErrors(six().slice(3), { tiempoMaxMin: 45, kind: 'elaborada' })).toEqual([])
+    expect(suggestionErrors(six().slice(3), { tiempoMaxMin: 45, kind: 'sencilla' })[0]).toContain('exactamente 3 opciones de tipo "sencilla"')
   })
 
   it('6 válidas sin errores', () => {

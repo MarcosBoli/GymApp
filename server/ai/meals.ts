@@ -15,6 +15,7 @@ import {
   type Recipe,
   type RecipeRequest,
   type Suggestion,
+  type SuggestionKind,
 } from '../../src/domain/mealSchema.js'
 import type { AiClient } from './claude.js'
 import { callToolWithRetry, formatZodIssues, toolFromZod, type ToolCallResult, type ToolParse } from './tools.js'
@@ -25,14 +26,14 @@ export const RECIPE_TOOL = 'escribir_receta'
 export const MEAL_SYSTEM = `Eres un dietista-nutricionista y cocinero que propone qué comer en España, ajustándose a lo que le queda del día a la persona.
 
 Reglas:
-- Propón exactamente 6 opciones: 3 "sencilla" (≤ ${SIMPLE_MAX_MIN} min, ≤ ${SIMPLE_MAX_INGREDIENTS} ingredientes, de despensa española típica) y 3 "elaborada" (≤ ${ELABORATE_MAX_MIN} min y sin pasar del tiempo máximo del usuario, con más sabor y técnica).
+- Te pedirán 3 opciones de un solo tipo: 3 "sencilla" (≤ ${SIMPLE_MAX_MIN} min, ≤ ${SIMPLE_MAX_INGREDIENTS} ingredientes, de despensa española típica) o 3 "elaborada" (≤ ${ELABORATE_MAX_MIN} min y sin pasar del tiempo máximo del usuario, con más sabor y técnica). Todas con el "tipo" pedido.
 - Ajusta cada opción a las kcal y macros objetivo de esta comida (±15 %). Si va corto de proteína, prioriza la proteína. Nunca te pases del total que le queda del día.
 - Si le queda muy poco o nada (o es negativo), propón opciones ligeras y dilo con naturalidad en "porQueEncaja", sin sermones ni recomendaciones extremas (nada de ayunos ni de "no comas").
 - Respeta lo que no le gusta, su tipo de dieta, su presupuesto y los utensilios que tiene (no propongas horno si no lo tiene).
 - Comida real de supermercado español (Mercadona, Lidl, Carrefour…), con cantidades realistas para 1 ración. Variedad entre opciones (proteínas, cocinas y técnicas distintas). No repitas lo que ha comido los últimos días ni lo que ya se le propuso.
 - Valores nutricionales estándar (BEDCA / europeos). Las kcal deben cuadrar con los macros (4/4/9, ±10 %).
 - "gramosRacion": peso aproximado del plato servido.
-- Textos en español de España, breves. "descripcion" y "porQueEncaja", una frase cada una; en "porQueEncaja" di cómo encaja con lo que le queda hoy (p. ej. "Te aporta 40 g de proteína de los 55 que te faltan").
+- Textos en español de España, breves (la respuesta tiene que ser rápida). "descripcion" y "porQueEncaja", una frase corta cada una; en "porQueEncaja" di cómo encaja con lo que le queda hoy (p. ej. "Te aporta 40 g de proteína de los 55 que te faltan").
 
 Responde SIEMPRE llamando a la herramienta ${SUGGEST_TOOL}.`
 
@@ -47,7 +48,7 @@ Reglas:
 
 Responde SIEMPRE llamando a la herramienta ${RECIPE_TOOL}.`
 
-export const suggestTool = () => toolFromZod(SUGGEST_TOOL, 'Propone exactamente 6 opciones de comida (3 sencillas y 3 elaboradas).', SuggestionsToolSchema)
+export const suggestTool = () => toolFromZod(SUGGEST_TOOL, 'Propone exactamente 3 opciones de comida del tipo pedido.', SuggestionsToolSchema)
 export const recipeTool = () => toolFromZod(RECIPE_TOOL, 'Escribe la receta de la opción elegida, con los ingredientes en gramos y sus macros.', RecipeToolSchema)
 
 const MEAL_NAMES = { breakfast: 'desayuno', lunch: 'comida', dinner: 'cena', snack: 'merienda / snack' } as const
@@ -65,8 +66,13 @@ export function prefsLines(p: MealPrefs): string[] {
   ]
 }
 
-/** Mensaje para pedir las 6 opciones. */
-export function buildSuggestPrompt(req: MealSuggestRequest): string {
+const KIND_ASK: Record<SuggestionKind, (maxMin: number) => string> = {
+  sencilla: () => `Propón 3 opciones de tipo "sencilla": rápidas (≤ ${SIMPLE_MAX_MIN} min), ≤ ${SIMPLE_MAX_INGREDIENTS} ingredientes de despensa española típica.`,
+  elaborada: (maxMin) => `Propón 3 opciones de tipo "elaborada": más elaboradas y sabrosas, como mucho ${maxMin} min.`,
+}
+
+/** Mensaje para pedir las 3 opciones de un tipo (las dos tandas van en paralelo). */
+export function buildSuggestPrompt(req: MealSuggestRequest, kind: SuggestionKind): string {
   const c = req.context
   const lines = [
     `Comida: ${MEAL_NAMES[c.comida]}. Objetivo: ${GOAL_NAMES[c.objetivo]}.`,
@@ -75,41 +81,75 @@ export function buildSuggestPrompt(req: MealSuggestRequest): string {
       ? `Le queda muy poco o nada del día: propón opciones ligeras (≈ 100-300 kcal) y dilo con naturalidad, sin sermones.`
       : `Objetivo para esta comida (±15 %): ${macrosLine(c.objetivoComida)}.`,
     ...prefsLines(c.preferencias),
-    `Elaboradas: como mucho ${elaborateMaxMin(c.preferencias.tiempoMaxMin)} min.`,
     c.ultimasComidas.length ? `Ha comido los últimos días (no repetir): ${c.ultimasComidas.join(', ')}.` : 'No hay comidas registradas los últimos días.',
   ]
   if (c.peticion?.trim()) lines.push(`Petición del usuario: ${c.peticion.trim()}`)
   if (req.excluir?.length) lines.push(`Ya se le propusieron (propón otras distintas): ${req.excluir.join(', ')}.`)
-  lines.push(`Llama a ${SUGGEST_TOOL} con las 6 opciones.`)
+  lines.push(KIND_ASK[kind](elaborateMaxMin(c.preferencias.tiempoMaxMin)), `Llama a ${SUGGEST_TOOL} con las 3 opciones.`)
   return lines.join('\n')
 }
 
-function parseSuggestions(call: Anthropic.Beta.BetaToolUseBlock | undefined, req: MealSuggestRequest): ToolParse<Suggestion[]> {
+function parseSuggestions(call: Anthropic.Beta.BetaToolUseBlock | undefined, req: MealSuggestRequest, kind: SuggestionKind): ToolParse<Suggestion[]> {
   if (!call) return { ok: false, errors: [`No llamaste a la herramienta ${SUGGEST_TOOL}.`] }
   const parsed = SuggestionsToolSchema.safeParse(call.input)
   if (!parsed.success) return { ok: false, errors: formatZodIssues(parsed.error.issues) }
-  const errors = suggestionErrors(parsed.data.opciones, { tiempoMaxMin: req.context.preferencias.tiempoMaxMin, excluir: req.excluir })
+  const errors = suggestionErrors(parsed.data.opciones, { tiempoMaxMin: req.context.preferencias.tiempoMaxMin, excluir: req.excluir, kind })
   if (errors.length) return { ok: false, errors }
   // Ids estables y únicos (los del modelo pueden repetirse): sencillas s1-s3, elaboradas e1-e3
-  const counters = { sencilla: 0, elaborada: 0 }
-  const opciones = parsed.data.opciones.map((o) => ({ ...o, id: `${o.tipo === 'sencilla' ? 's' : 'e'}${++counters[o.tipo]}`, nombre: o.nombre.trim() }))
-  return { ok: true, value: opciones }
+  const prefix = kind === 'sencilla' ? 's' : 'e'
+  return { ok: true, value: parsed.data.opciones.map((o, i) => ({ ...o, id: `${prefix}${i + 1}`, nombre: o.nombre.trim() })) }
 }
 
-export function suggestMeals(client: AiClient, model: string, req: MealSuggestRequest, opts: { deadline: number; now?: () => number }): Promise<ToolCallResult<Suggestion[]>> {
-  return callToolWithRetry(client, {
-    model,
-    system: MEAL_SYSTEM,
-    content: [{ type: 'text', text: buildSuggestPrompt(req) }],
-    tools: [suggestTool()],
-    effort: 'low',
-    maxTokens: 8000,
-    deadline: opts.deadline,
-    now: opts.now,
-    parse: (call) => parseSuggestions(call, req),
-    invalidCode: 'invalid_suggestions',
-    label: 'recomendación de comidas',
+const KIND_LABEL: Record<SuggestionKind, string> = { sencilla: 'rápidas', elaborada: 'más elaboradas' }
+
+export interface SuggestResult {
+  opciones: Suggestion[]
+  aviso?: string
+  model: string
+  attempts: number
+  usage: { input_tokens: number; output_tokens: number }
+}
+
+/**
+ * Las 6 opciones en dos llamadas EN PARALELO (3 sencillas + 3 elaboradas): la mitad de salida cada
+ * una, así que tarda la mitad, y cada tanda se valida y reintenta por su cuenta. Si falla solo una,
+ * se devuelve la otra con un aviso; si fallan las dos, el primer error.
+ */
+export async function suggestMeals(client: AiClient, model: string, req: MealSuggestRequest, opts: { deadline: number; now?: () => number }): Promise<SuggestResult> {
+  const kinds: SuggestionKind[] = ['sencilla', 'elaborada']
+  const results = await Promise.allSettled(
+    kinds.map((kind) =>
+      callToolWithRetry(client, {
+        model,
+        system: MEAL_SYSTEM,
+        content: [{ type: 'text', text: buildSuggestPrompt(req, kind) }],
+        tools: [suggestTool()],
+        effort: 'low',
+        maxTokens: 8000,
+        deadline: opts.deadline,
+        now: opts.now,
+        parse: (call) => parseSuggestions(call, req, kind),
+        invalidCode: 'invalid_suggestions',
+        label: `recomendación de comidas (${kind})`,
+      }),
+    ),
+  )
+  const ok = results.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : []))
+  if (!ok.length) throw (results[0] as PromiseRejectedResult).reason
+  // Un plato con el mismo nombre en las dos tandas: se queda el de las sencillas
+  const seen = new Set<string>()
+  const opciones = ok.flatMap((r) => r.value).filter((o) => {
+    const key = o.nombre.toLowerCase()
+    return !seen.has(key) && seen.add(key)
   })
+  const failed = kinds.filter((_, i) => results[i]!.status === 'rejected')
+  return {
+    opciones,
+    ...(failed.length ? { aviso: `No se pudieron preparar las opciones ${KIND_LABEL[failed[0]!]}. Pulsa «Otras opciones» para intentarlo de nuevo.` } : {}),
+    model: ok[0]!.model,
+    attempts: Math.max(...ok.map((r) => r.attempts)),
+    usage: { input_tokens: ok.reduce((n, r) => n + r.usage.input_tokens, 0), output_tokens: ok.reduce((n, r) => n + r.usage.output_tokens, 0) },
+  }
 }
 
 /** Mensaje para pedir la receta de la opción elegida. */

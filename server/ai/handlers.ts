@@ -91,7 +91,7 @@ export function createAiHandlers({ env, makeClient = createAnthropicClient, now 
         const body = MealSuggestRequestSchema.safeParse(await readJsonBody(request, AI_MAX_BODY_BYTES))
         if (!body.success) throw new HttpError('invalid_request', 400)
         const r = await suggestMeals(client, config.mealModel, body.data, { deadline: started + FOOD_BUDGET_MS, now })
-        return json({ opciones: r.value, model: r.model, attempts: r.attempts, usage: r.usage })
+        return json(r)
       }),
 
     /** Receta de la opción elegida, con ingredientes en gramos que suman sus macros (RECIPE_MODEL). */
